@@ -171,7 +171,15 @@ var Lightspeed;
 (function (Lightspeed) {
     var Element = /** @class */ (function () {
         function Element() {
+            this._id = Element._nextId++;
         }
+        Object.defineProperty(Element.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Element.prototype.init = function (context) {
             // optionally overloaded by extending classes set the initial state of this element.
         };
@@ -181,6 +189,7 @@ var Lightspeed;
         Element.prototype.render = function (context) {
             // optionally overloaded by extending classes to render element.
         };
+        Element._nextId = 0;
         return Element;
     }());
     Lightspeed.Element = Element;
@@ -215,6 +224,8 @@ var Lightspeed;
     var Engine = /** @class */ (function () {
         function Engine() {
             this._elements = [];
+            this._isPaused = false;
+            this._wasPaused = false;
             this._canvas = Lightspeed.Canvas.find();
         }
         Engine.prototype.clear = function () {
@@ -225,6 +236,12 @@ var Lightspeed;
             var initContext = new Lightspeed.ElementInitContext(this.canvas);
             element.init(initContext);
         };
+        Engine.prototype.removeElement = function (element) {
+            var index = this._elements.indexOf(element);
+            if (index !== -1) {
+                this._elements.splice(index, 1);
+            }
+        };
         Object.defineProperty(Engine.prototype, "canvas", {
             get: function () {
                 return this._canvas;
@@ -232,13 +249,38 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Engine.prototype, "isPaused", {
+            get: function () {
+                return this._isPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Engine.prototype.pause = function () {
+            this._isPaused = true;
+            this._wasPaused = true;
+        };
+        Engine.prototype.unpause = function () {
+            this._isPaused = false;
+        };
+        Engine.prototype.togglePause = function () {
+            if (this._isPaused) {
+                this.unpause();
+            }
+            else {
+                this.pause();
+            }
+        };
         Engine.prototype.runFrame = function (timeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
-            // Update phase
-            var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp);
-            for (var i = 0; i < this._elements.length; i++) {
-                var element = this._elements[i];
-                element.update(updateContext);
+            if (!this._isPaused) {
+                // Update phase
+                var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, this._wasPaused);
+                this._wasPaused = false;
+                for (var i = 0; i < this._elements.length; i++) {
+                    var element = this._elements[i];
+                    element.update(updateContext);
+                }
             }
             // Render phase
             var ctx = this.canvas.startRender();
@@ -291,15 +333,18 @@ var Lightspeed;
 var Lightspeed;
 (function (Lightspeed) {
     var FrameUpdateContext = /** @class */ (function () {
-        function FrameUpdateContext(engine, timeStamp) {
+        function FrameUpdateContext(engine, timeStamp, fromPause) {
             this._engine = engine;
             this._canvasBox = engine.canvas.box;
-            this._timeStamp = timeStamp;
             if (!FrameUpdateContext._lastTimeStamp) {
                 FrameUpdateContext._lastTimeStamp = timeStamp;
             }
             this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
             this._delta = this._elapsed / 1000;
+            if (fromPause) {
+                this._elapsed = 0;
+                this._delta = 0;
+            }
             FrameUpdateContext._lastTimeStamp = timeStamp;
         }
         Object.defineProperty(FrameUpdateContext.prototype, "elapsed", {
@@ -488,6 +533,16 @@ var Config = {
         moveDown: ['ArrowDown', 'KeyS'],
         moveLeft: ['ArrowLeft', 'KeyA'],
         moveRight: ['ArrowRight', 'KeyD'],
+        pause: ['KeyP', 'Pause']
+    },
+    strings: {
+        pauseMessage: 'Paused',
+        pauseSubtext: 'Press "P" to unpause',
+    },
+    styles: {
+        textColor: '#AAA',
+        messageTextSize: 30,
+        messageSubtextSize: 10
     },
     imageScale: 0.075,
     images: {
@@ -521,7 +576,9 @@ var Megaparsec;
     var Game = /** @class */ (function (_super) {
         __extends(Game, _super);
         function Game() {
-            return _super !== null && _super.apply(this, arguments) || this;
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._pauseMessage = new Megaparsec.Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
+            return _this;
         }
         Game.prototype.load = function (config) {
             this.clear();
@@ -532,10 +589,24 @@ var Megaparsec;
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
         };
+        Game.prototype.pause = function () {
+            this.pushElement(this._pauseMessage);
+            _super.prototype.pause.call(this);
+        };
+        Game.prototype.unpause = function () {
+            this.removeElement(this._pauseMessage);
+            _super.prototype.unpause.call(this);
+        };
         Game.run = function () {
-            Game.s_current = new Game();
-            Game.s_current.load(Config);
-            Game.s_current.run();
+            var game = Game.s_current = new Game();
+            game.load(Config);
+            game.run();
+            Megaparsec.Keyboard.Current.keys(Config.keys.pause, function () { return game.togglePause(); });
+            window.addEventListener('blur', function () {
+                if (!game.isPaused) {
+                    game.pause();
+                }
+            });
         };
         return Game;
     }(Lightspeed.Engine));
@@ -859,6 +930,42 @@ var Megaparsec;
         return Hills;
     }(Lightspeed.Element));
     Megaparsec.Hills = Hills;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Message = /** @class */ (function (_super) {
+        __extends(Message, _super);
+        function Message(text, subtext) {
+            var _this = _super.call(this) || this;
+            _this._text = '';
+            _this._subtext = null;
+            _this.color = Config.styles.textColor;
+            _this.textFontSize = Config.styles.messageTextSize;
+            _this.subtextFontSize = Config.styles.messageSubtextSize;
+            _this._text = text;
+            _this._subtext = subtext;
+            return _this;
+        }
+        Message.prototype.render = function (context) {
+            var canvasHeight = context.canvasHeight;
+            var canvasWidth = context.canvasWidth;
+            var ctx = context.ctx;
+            ctx.save();
+            ctx.fillStyle = this.color;
+            ctx.font = this.textFontSize + "px Arial";
+            var subtextHeight = this._subtext ? this.subtextFontSize : 0;
+            var textBounds = ctx.measureText(this._text);
+            ctx.fillText(this._text, canvasWidth / 2 - textBounds.width / 2, canvasHeight / 2 - this.textFontSize / 2 - subtextHeight / 2);
+            if (this._subtext) {
+                ctx.font = this.subtextFontSize + "px Arial";
+                var subtextBounds = ctx.measureText(this._subtext);
+                ctx.fillText(this._subtext, canvasWidth / 2 - subtextBounds.width / 2, canvasHeight / 2 - subtextHeight / 2 + subtextHeight / 2);
+            }
+            ctx.restore();
+        };
+        return Message;
+    }(Lightspeed.Element));
+    Megaparsec.Message = Message;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {

@@ -4,6 +4,8 @@ namespace Megaparsec {
         
         private _player: Player;
 
+        private _pauseMessage = new Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
+
         load(config: any) {
             this.clear();
             
@@ -16,10 +18,30 @@ namespace Megaparsec {
             this.pushElement(this._player);
         }
 
+        pause() {
+            this.pushElement(this._pauseMessage);
+
+            super.pause();
+        }
+
+        unpause() {
+            this.removeElement(this._pauseMessage);
+
+            super.unpause();
+        }
+
         static run() :void {
-            Game.s_current = new Game();
-            Game.s_current.load(Config);
-            Game.s_current.run();
+            var game = Game.s_current = new Game();
+            game.load(Config);
+            game.run();
+
+            Keyboard.Current.keys(Config.keys.pause, () => game.togglePause());
+
+            window.addEventListener('blur', () => {
+                if (!game.isPaused) {
+                    game.pause();
+                }
+            });
         }
     }
 }

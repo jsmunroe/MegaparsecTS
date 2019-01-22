@@ -1,7 +1,15 @@
 namespace Lightspeed {
     export class Element {
-        private _canvasWidth: number;
-        private _canvasHeight: number;
+        private static _nextId: number = 0;
+        private _id: number;
+
+        public get id() {
+            return this._id;
+        }
+
+        constructor() {
+            this._id = Element._nextId++;
+        }
 
         init(context: ElementInitContext) : void {
             // optionally overloaded by extending classes set the initial state of this element.

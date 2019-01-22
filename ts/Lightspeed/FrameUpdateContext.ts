@@ -4,18 +4,15 @@ namespace Lightspeed {
         
         private _canvasBox: Box;
 
-        private _timeStamp : number;
         private _elapsed: number;
         private _delta: number;
 
         private static _lastTimeStamp : number;
 
-        constructor(engine : Engine, timeStamp : DOMHighResTimeStamp) {
+        constructor(engine : Engine, timeStamp : DOMHighResTimeStamp, fromPause? : boolean) {
             this._engine = engine;
 
             this._canvasBox = engine.canvas.box;
-
-            this._timeStamp = timeStamp;
             
             if (!FrameUpdateContext._lastTimeStamp) {
                 FrameUpdateContext._lastTimeStamp = timeStamp;
@@ -23,6 +20,11 @@ namespace Lightspeed {
 
             this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
             this._delta = this._elapsed / 1000;
+
+            if (fromPause) {
+                this._elapsed = 0;
+                this._delta = 0;
+            }
 
             FrameUpdateContext._lastTimeStamp = timeStamp;
         }

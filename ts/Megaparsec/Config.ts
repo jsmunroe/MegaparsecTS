@@ -4,7 +4,17 @@ var Config = {
         moveDown: ['ArrowDown', 'KeyS'],
         moveLeft: ['ArrowLeft', 'KeyA'], 
         moveRight: ['ArrowRight', 'KeyD'],
+        pause: ['KeyP', 'Pause']
     }, 
+    strings: {
+        pauseMessage: 'Paused',
+        pauseSubtext: 'Press "P" to resume.',
+    },
+    styles: {
+        textColor: '#AAA',
+        messageTextSize: 30,
+        messageSubtextSize: 10
+    },
     imageScale: 0.075,
     images: {
         player: './img/player.png',
