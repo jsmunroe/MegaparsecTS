@@ -788,10 +788,10 @@ var Megaparsec;
         __extends(Hills, _super);
         function Hills() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this._maxHillHeight = 200;
+            _this._maxHillHeight = 150;
             _this._minHillHeight = 50;
-            _this._maxHillWidth = 250;
-            _this._minHillWidth = 150;
+            _this._maxHillWidth = 150;
+            _this._minHillWidth = 100;
             _this._hills = [];
             _this.velocityX = 0;
             _this.velocityY = 0;
@@ -802,7 +802,7 @@ var Megaparsec;
                 var height = Megaparsec.Random.getBetween(this._minHillHeight, this._maxHillHeight);
                 var width = Megaparsec.Random.getBetween(this._minHillWidth, this._maxHillWidth);
                 var depth = Megaparsec.Random.next(10);
-                var velocity = -200 + depth;
+                var velocity = -200 - depth;
                 var hill = {
                     start: hillX,
                     width: width,

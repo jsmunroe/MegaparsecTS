@@ -1,9 +1,9 @@
 namespace Megaparsec {
     export class Hills extends Lightspeed.Element {
-        private _maxHillHeight: number = 200;
+        private _maxHillHeight: number = 150;
         private _minHillHeight: number = 50;
-        private _maxHillWidth: number = 250;
-        private _minHillWidth: number = 150;
+        private _maxHillWidth: number = 150;
+        private _minHillWidth: number = 100;
 
         private _hills = [];
 
@@ -16,7 +16,7 @@ namespace Megaparsec {
                 var height = Random.getBetween(this._minHillHeight, this._maxHillHeight);
                 var width = Random.getBetween(this._minHillWidth, this._maxHillWidth);
                 var depth = Random.next(10);
-                var velocity = -200 + depth;
+                var velocity = -200 - depth;
     
                 var hill = {
                     start: hillX,
