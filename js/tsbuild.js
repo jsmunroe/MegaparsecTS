@@ -537,7 +537,7 @@ var Config = {
     },
     strings: {
         pauseMessage: 'Paused',
-        pauseSubtext: 'Press "P" to unpause',
+        pauseSubtext: 'Press "P" to resume.',
     },
     styles: {
         textColor: '#AAA',
@@ -545,30 +545,49 @@ var Config = {
         messageSubtextSize: 10
     },
     imageScale: 0.075,
-    images: {
-        player: './img/player.png',
+    agents: {
+        player: {
+            image: './img/player.png'
+        },
         playerShot: './img/player.shot.png',
-        enemy1: [
-            './img/enemy1.blue.png',
-            './img/enemy1.cyan.png',
-            './img/enemy1.green.png',
-            './img/enemy1.magenta.png',
-            './img/enemy1.orange.png'
-        ],
-        enemy2: [
-            './img/enemy2.blue.png',
-            './img/enemy2.cyan.png',
-            './img/enemy2.green.png',
-            './img/enemy2.magenta.png',
-            './img/enemy2.red.png'
-        ],
-        enemy3: [
-            './img/enemy3.blue.png',
-            './img/enemy3.cyan.png',
-            './img/enemy3.green.png',
-            './img/enemy3.magenta.png',
-            './img/enemy3.red.png'
-        ]
+        enemy1: {
+            controllers: [
+                { name: 'Swoop' },
+                { name: 'Bounce' },
+                { name: 'Loop' }
+            ],
+            images: [
+                './img/enemy1.blue.png',
+                './img/enemy1.cyan.png',
+                './img/enemy1.green.png',
+                './img/enemy1.magenta.png',
+                './img/enemy1.orange.png'
+            ]
+        },
+        enemy2: {
+            controllers: [
+                { name: 'Loop' }
+            ],
+            images: [
+                './img/enemy2.blue.png',
+                './img/enemy2.cyan.png',
+                './img/enemy2.green.png',
+                './img/enemy2.magenta.png',
+                './img/enemy2.red.png'
+            ]
+        },
+        enemy3: {
+            controllers: [
+                { name: 'Target' }
+            ],
+            images: [
+                './img/enemy3.blue.png',
+                './img/enemy3.cyan.png',
+                './img/enemy3.green.png',
+                './img/enemy3.magenta.png',
+                './img/enemy3.red.png'
+            ]
+        }
     }
 };
 var Megaparsec;
@@ -628,6 +647,10 @@ var Megaparsec;
         };
         Random.nextInt = function (upperBound) {
             return Math.floor(Math.random() * (upperBound || 10));
+        };
+        Random.pick = function (array) {
+            var index = Random.nextInt(array.length);
+            return array[index];
         };
         return Random;
     }());
@@ -745,14 +768,48 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var Enemy = /** @class */ (function (_super) {
+        __extends(Enemy, _super);
+        function Enemy(controller, imagePath) {
+            return _super.call(this, new Megaparsec.Human, new Lightspeed.Sprite(imagePath, Config.imageScale)) || this;
+        }
+        return Enemy;
+    }(Megaparsec.Agent));
+    Megaparsec.Enemy = Enemy;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
     var Player = /** @class */ (function (_super) {
         __extends(Player, _super);
         function Player() {
-            return _super.call(this, new Megaparsec.Human, new Lightspeed.Sprite(Config.images.player, Config.imageScale)) || this;
+            return _super.call(this, new Megaparsec.Human, new Lightspeed.Sprite(Config.agents.player.image, Config.imageScale)) || this;
         }
         return Player;
     }(Megaparsec.Agent));
     Megaparsec.Player = Player;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Wave = /** @class */ (function (_super) {
+        __extends(Wave, _super);
+        function Wave(config) {
+            var _this = _super.call(this) || this;
+            _this._agents = [];
+            _this._config = config;
+            return _this;
+        }
+        Wave.prototype.init = function (context) {
+            var _this = this;
+            var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i); });
+            this._config.images.forEach(function (i) {
+                var controller = Megaparsec.Random.pick(controllers);
+                var agent = new Megaparsec.Enemy(controller, i);
+                _this._agents.push(agent);
+            });
+        };
+        return Wave;
+    }(Lightspeed.Element));
+    Megaparsec.Wave = Wave;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -765,6 +822,35 @@ var Megaparsec;
         return Controller;
     }());
     Megaparsec.Controller = Controller;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var ControllerFactory = /** @class */ (function () {
+        function ControllerFactory() {
+            this._controllerTypesByName = {};
+            this.registerControllers();
+        }
+        ControllerFactory.prototype.registerControllers = function () {
+            this._controllerTypesByName['Player'] = Megaparsec.Player;
+        };
+        Object.defineProperty(ControllerFactory, "current", {
+            get: function () {
+                return ControllerFactory._current;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ControllerFactory.prototype.create = function (config) {
+            if (!config.name || !this._controllerTypesByName[config.name]) {
+                return new Megaparsec.Controller();
+            }
+            var type = this._controllerTypesByName[config.name];
+            return new type(config);
+        };
+        ControllerFactory._current = new ControllerFactory();
+        return ControllerFactory;
+    }());
+    Megaparsec.ControllerFactory = ControllerFactory;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {

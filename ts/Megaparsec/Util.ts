@@ -15,6 +15,11 @@ namespace Megaparsec {
         static nextInt(upperBound?: number) {
             return Math.floor(Math.random() * (upperBound || 10));
         }
+
+        static pick(array: any[]) {
+            var index = Random.nextInt(array.length);
+            return array[index];
+        }
     }
 
     export class Color {
