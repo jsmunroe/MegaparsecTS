@@ -7,6 +7,8 @@ namespace Lightspeed {
         private _isPaused : boolean = false;
         private _wasPaused : boolean = false;
 
+        private _elementTimeouts: ElementTimeout[] = [];
+
         constructor() {
             this._canvas = Canvas.find();
         }
@@ -55,8 +57,20 @@ namespace Lightspeed {
             }
         }
 
+        public requestTimeout(time: number, element: Element, action: (context: FrameUpdateContext) => void) {
+            this._elementTimeouts.push({
+                time: time,
+                element: element,
+                action: action
+            });
+        }
+
         private runFrame(timeStamp : DOMHighResTimeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
+
+            // Get element timeouts for this frame.
+            var currentElementTimeouts = this._elementTimeouts.filter(i => i.time <= timeStamp && !i.element.isDead)
+            this._elementTimeouts = this._elementTimeouts.filter(i => i.time > timeStamp && !i.element.isDead);
 
             if (!this._isPaused) {
                 // Update phase
@@ -64,10 +78,20 @@ namespace Lightspeed {
 
                 this._wasPaused = false;
 
+                // Remove dead elements.
+                this._elements = this._elements.filter(p => !p.isDead)
+
                 for (let i = 0; i < this._elements.length; i++) {
                     const element = this._elements[i];
                     
+                    updateContext.currentElement = element;
+
                     element.update(updateContext);
+
+                    var elementTimeouts = currentElementTimeouts.filter(i => i.element === element);
+                    for (let j = 0; j < elementTimeouts.length; j++) {
+                        elementTimeouts[j].action.bind(elementTimeouts[j].element)(updateContext);
+                    }
                 }
             }
 
@@ -89,4 +113,9 @@ namespace Lightspeed {
         }
     }
 
+    class ElementTimeout {
+        public time :number;
+        public element :Element;
+        public action :(context: FrameUpdateContext) => void;
+    }
 }

@@ -171,11 +171,19 @@ var Lightspeed;
 (function (Lightspeed) {
     var Element = /** @class */ (function () {
         function Element() {
+            this._isDead = false;
             this._id = Element._nextId++;
         }
         Object.defineProperty(Element.prototype, "id", {
             get: function () {
                 return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Element.prototype, "isDead", {
+            get: function () {
+                return this._isDead;
             },
             enumerable: true,
             configurable: true
@@ -189,6 +197,9 @@ var Lightspeed;
         Element.prototype.render = function (context) {
             // optionally overloaded by extending classes to render element.
         };
+        Element.prototype.kill = function () {
+            this._isDead = true;
+        };
         Element._nextId = 0;
         return Element;
     }());
@@ -198,19 +209,11 @@ var Lightspeed;
 (function (Lightspeed) {
     var ElementInitContext = /** @class */ (function () {
         function ElementInitContext(canvas) {
-            this._canvasHeight = canvas.height;
-            this._canvasWidth = canvas.width;
+            this._canvasBox = canvas.box;
         }
-        Object.defineProperty(ElementInitContext.prototype, "canvasWidth", {
+        Object.defineProperty(ElementInitContext.prototype, "canvasBox", {
             get: function () {
-                return this._canvasWidth;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(ElementInitContext.prototype, "canvasHeight", {
-            get: function () {
-                return this._canvasHeight;
+                return this._canvasBox;
             },
             enumerable: true,
             configurable: true
@@ -226,6 +229,7 @@ var Lightspeed;
             this._elements = [];
             this._isPaused = false;
             this._wasPaused = false;
+            this._elementTimeouts = [];
             this._canvas = Lightspeed.Canvas.find();
         }
         Engine.prototype.clear = function () {
@@ -271,15 +275,36 @@ var Lightspeed;
                 this.pause();
             }
         };
+        Engine.prototype.requestTimeout = function (time, element, action) {
+            this._elementTimeouts.push({
+                time: time,
+                element: element,
+                action: action
+            });
+        };
         Engine.prototype.runFrame = function (timeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
+            // Get element timeouts for this frame.
+            var currentElementTimeouts = this._elementTimeouts.filter(function (i) { return i.time <= timeStamp && !i.element.isDead; });
+            this._elementTimeouts = this._elementTimeouts.filter(function (i) { return i.time > timeStamp && !i.element.isDead; });
             if (!this._isPaused) {
                 // Update phase
                 var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, this._wasPaused);
                 this._wasPaused = false;
-                for (var i = 0; i < this._elements.length; i++) {
-                    var element = this._elements[i];
+                // Remove dead elements.
+                this._elements = this._elements.filter(function (p) { return !p.isDead; });
+                var _loop_1 = function (i) {
+                    var element = this_1._elements[i];
+                    updateContext.currentElement = element;
                     element.update(updateContext);
+                    elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
+                    for (var j = 0; j < elementTimeouts.length; j++) {
+                        elementTimeouts[j].action.bind(elementTimeouts[j].element)(updateContext);
+                    }
+                };
+                var this_1 = this, elementTimeouts;
+                for (var i = 0; i < this._elements.length; i++) {
+                    _loop_1(i);
                 }
             }
             // Render phase
@@ -297,6 +322,11 @@ var Lightspeed;
         return Engine;
     }());
     Lightspeed.Engine = Engine;
+    var ElementTimeout = /** @class */ (function () {
+        function ElementTimeout() {
+        }
+        return ElementTimeout;
+    }());
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
@@ -339,6 +369,7 @@ var Lightspeed;
             if (!FrameUpdateContext._lastTimeStamp) {
                 FrameUpdateContext._lastTimeStamp = timeStamp;
             }
+            this._timeStamp = timeStamp;
             this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
             this._delta = this._elapsed / 1000;
             if (fromPause) {
@@ -368,6 +399,12 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        FrameUpdateContext.prototype.activate = function (element) {
+            this._engine.pushElement(element);
+        };
+        FrameUpdateContext.prototype.delay = function (elapsed, action) {
+            this._engine.requestTimeout(this._timeStamp + elapsed, this.currentElement, action);
+        };
         return FrameUpdateContext;
     }());
     Lightspeed.FrameUpdateContext = FrameUpdateContext;
@@ -527,6 +564,94 @@ var Lightspeed;
     }());
     Lightspeed.Vector = Vector;
 })(Lightspeed || (Lightspeed = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Wave = /** @class */ (function (_super) {
+        __extends(Wave, _super);
+        function Wave(config) {
+            var _this = _super.call(this) || this;
+            _this._agents = [];
+            _this._activeAgents = [];
+            _this._mode = Wave.offsetWaveMode;
+            _this._delay = 1000.0; // 1 second.
+            _this._interval = 2000.0; // 2 seconds; 
+            _this._isFirstUpdate = true;
+            _this._config = config;
+            _this._mode = config.mode || _this._mode;
+            _this._delay = config.delay || _this._delay;
+            _this._interval = config.interval || _this._interval;
+            return _this;
+        }
+        Wave.prototype.init = function (context) {
+            var _this = this;
+            var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i); });
+            this._config.images.forEach(function (i) {
+                var controller = Megaparsec.Random.pick(controllers);
+                var agent = new Megaparsec.Enemy(controller, i);
+                _this._agents.push(agent);
+            });
+        };
+        Wave.prototype.update = function (context) {
+            // Purge dead agents.
+            this._agents = this._agents.filter(function (i) { return !i.isDead; });
+            this._activeAgents = this._activeAgents.filter(function (i) { return !i.isDead; });
+            if (!this._agents.length) {
+                this.kill();
+                return;
+            }
+            if (this._mode == Wave.offsetWaveMode) {
+                this.updateOffset(context);
+            }
+            else if (this._mode == Wave.instantWaveMode) {
+                this.updateInstant(context);
+            }
+            else {
+                this.updateSerial(context);
+            }
+            this._isFirstUpdate = false;
+        };
+        Wave.prototype.updateSerial = function (context) {
+            if (!this._activeAgents.length) {
+                var newAgent = this._agents[0];
+                context.activate(newAgent);
+                this._activeAgents.push(newAgent);
+            }
+        };
+        Wave.prototype.updateOffset = function (context) {
+            if (this._isFirstUpdate) {
+                context.delay(this._delay, this.udpateOffsetTimeout);
+            }
+        };
+        Wave.prototype.udpateOffsetTimeout = function (context) {
+            var _this = this;
+            // Get agents not in the active agents list.
+            var agentsLeft = this._agents.filter(function (i) { return _this._activeAgents.indexOf(i) === -1; });
+            if (agentsLeft.length) {
+                var newAgent = agentsLeft[0];
+                context.activate(newAgent);
+                this._activeAgents.push(newAgent);
+            }
+            if (agentsLeft.length > 1) {
+                context.delay(this._interval, this.udpateOffsetTimeout);
+            }
+        };
+        Wave.prototype.updateInstant = function (context) {
+            if (this._isFirstUpdate) {
+                for (var i = 0; i < this._agents.length; i++) {
+                    var agent = this._agents[i];
+                    context.activate(agent);
+                    this._activeAgents.push(agent);
+                }
+            }
+        };
+        Wave.serialWaveMode = 1; // One agent released at a time
+        Wave.offsetWaveMode = 2; // Agents at intervals
+        Wave.instantWaveMode = 3; // All agents released at once
+        return Wave;
+    }(Lightspeed.Element));
+    Megaparsec.Wave = Wave;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="Agents/Wave.ts" />
 var Config = {
     keys: {
         moveUp: ['ArrowUp', 'KeyW'],
@@ -551,6 +676,7 @@ var Config = {
         },
         playerShot: './img/player.shot.png',
         enemy1: {
+            mode: Megaparsec.Wave.offsetWaveMode,
             controllers: [
                 { name: 'Swoop' },
                 { name: 'Bounce' },
@@ -565,6 +691,7 @@ var Config = {
             ]
         },
         enemy2: {
+            mode: Megaparsec.Wave.offsetWaveMode,
             controllers: [
                 { name: 'Loop' }
             ],
@@ -577,6 +704,7 @@ var Config = {
             ]
         },
         enemy3: {
+            mode: Megaparsec.Wave.serialWaveMode,
             controllers: [
                 { name: 'Target' }
             ],
@@ -607,6 +735,10 @@ var Megaparsec;
             this._player = new Megaparsec.Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
+            this.loadNextWave(config);
+        };
+        Game.prototype.loadNextWave = function (config) {
+            this.pushElement(new Megaparsec.Wave(config.agents.enemy1));
         };
         Game.prototype.pause = function () {
             this.pushElement(this._pauseMessage);
@@ -727,6 +859,7 @@ var Megaparsec;
         __extends(Agent, _super);
         function Agent(controller, sprite) {
             var _this = _super.call(this) || this;
+            _this.controllerProperties = {};
             _this._controller = controller;
             _this._sprite = sprite;
             return _this;
@@ -755,6 +888,9 @@ var Megaparsec;
             enumerable: true,
             configurable: true
         });
+        Agent.prototype.init = function (context) {
+            this._controller.init(this, context.canvasBox);
+        };
         Agent.prototype.update = function (context) {
             this._controller.update(this, context.canvasBox);
             _super.prototype.update.call(this, context);
@@ -771,7 +907,7 @@ var Megaparsec;
     var Enemy = /** @class */ (function (_super) {
         __extends(Enemy, _super);
         function Enemy(controller, imagePath) {
-            return _super.call(this, new Megaparsec.Human, new Lightspeed.Sprite(imagePath, Config.imageScale)) || this;
+            return _super.call(this, controller, new Lightspeed.Sprite(imagePath, Config.imageScale)) || this;
         }
         return Enemy;
     }(Megaparsec.Agent));
@@ -790,32 +926,12 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
-    var Wave = /** @class */ (function (_super) {
-        __extends(Wave, _super);
-        function Wave(config) {
-            var _this = _super.call(this) || this;
-            _this._agents = [];
-            _this._config = config;
-            return _this;
-        }
-        Wave.prototype.init = function (context) {
-            var _this = this;
-            var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i); });
-            this._config.images.forEach(function (i) {
-                var controller = Megaparsec.Random.pick(controllers);
-                var agent = new Megaparsec.Enemy(controller, i);
-                _this._agents.push(agent);
-            });
-        };
-        return Wave;
-    }(Lightspeed.Element));
-    Megaparsec.Wave = Wave;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
     var Controller = /** @class */ (function () {
         function Controller() {
         }
+        Controller.prototype.init = function (agent, constraintBox) {
+            // optionally overloaded by extending classes to set given agents initial position.
+        };
         Controller.prototype.update = function (agent, constraintBox) {
             // optionally overloaded by extending classes to update the given agent.
         };
@@ -825,6 +941,43 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var Swoop = /** @class */ (function (_super) {
+        __extends(Swoop, _super);
+        function Swoop() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        Swoop.prototype.init = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            properties.phase = 0; // swooping
+            var zoneLeft = constraintBox.width * 0.7;
+            var zoneWidth = constraintBox.width - zoneLeft;
+            agent.position = new Lightspeed.Vector(zoneLeft + Megaparsec.Random.next(zoneWidth), -agent.height * 2.0);
+            var zoneHeight = constraintBox.height * 0.7;
+            var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
+            properties.initialY = agent.position.y;
+            properties.targetY = zoneTop + Megaparsec.Random.next(zoneHeight);
+            properties.initialVelocity = new Lightspeed.Vector(0, 400);
+            properties.targetVelocity = new Lightspeed.Vector(-200, 0);
+            agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
+        };
+        Swoop.prototype.update = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            if (properties.phase === 0) // swooping
+             {
+                var percentToTarget = (agent.position.y - properties.initialY) / (properties.targetY - properties.initialY);
+                agent.velocity = new Lightspeed.Vector(percentToTarget * properties.targetVelocity.x, (1 - percentToTarget) * properties.initialVelocity.y);
+                if (Math.abs(agent.position.y - properties.targetY) < 1) {
+                    properties.phase = 1; // cruising
+                }
+            }
+        };
+        return Swoop;
+    }(Megaparsec.Controller));
+    Megaparsec.Swoop = Swoop;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="Swoop.ts" />
+var Megaparsec;
+(function (Megaparsec) {
     var ControllerFactory = /** @class */ (function () {
         function ControllerFactory() {
             this._controllerTypesByName = {};
@@ -832,6 +985,10 @@ var Megaparsec;
         }
         ControllerFactory.prototype.registerControllers = function () {
             this._controllerTypesByName['Player'] = Megaparsec.Player;
+            this._controllerTypesByName['Swoop'] = Megaparsec.Swoop;
+            this._controllerTypesByName['Bounce'] = Megaparsec.Swoop;
+            this._controllerTypesByName['Loop'] = Megaparsec.Swoop;
+            this._controllerTypesByName['Target'] = Megaparsec.Swoop;
         };
         Object.defineProperty(ControllerFactory, "current", {
             get: function () {
@@ -973,7 +1130,7 @@ var Megaparsec;
             }
         };
         Hills.prototype.init = function (context) {
-            this.generateHills(-this._maxHillWidth, context.canvasWidth);
+            this.generateHills(-this._maxHillWidth, context.canvasBox.width);
         };
         Hills.prototype.update = function (context) {
             var hillsToKeep = [];
@@ -1068,8 +1225,8 @@ var Megaparsec;
         StarField.prototype.init = function (context) {
             for (var i = 0; i < this._starCount; i++) {
                 this._stars.push({
-                    x: Megaparsec.Random.next(context.canvasWidth),
-                    y: Megaparsec.Random.next(context.canvasHeight),
+                    x: Megaparsec.Random.next(context.canvasBox.width),
+                    y: Megaparsec.Random.next(context.canvasBox.height),
                     relativeVelocity: Megaparsec.Random.next(),
                     color: Megaparsec.Color.getRandomColor(),
                     radius: Megaparsec.Random.next() * 0.5,

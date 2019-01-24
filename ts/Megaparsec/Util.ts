@@ -16,7 +16,7 @@ namespace Megaparsec {
             return Math.floor(Math.random() * (upperBound || 10));
         }
 
-        static pick(array: any[]) {
+        static pick<TItem>(array: TItem[]) {
             var index = Random.nextInt(array.length);
             return array[index];
         }

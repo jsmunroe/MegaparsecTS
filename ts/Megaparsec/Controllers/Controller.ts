@@ -1,11 +1,11 @@
 namespace Megaparsec {
     export class Controller {
-        update(agent: Agent, constraintBox: Lightspeed.Box) {
-            // optionally overloaded by extending classes to update the given agent.
+        init(agent: Agent, constraintBox: Lightspeed.Box) {
+            // optionally overloaded by extending classes to set given agents initial position.
         }
 
-        updateWave(wave: Wave) {
-            
+        update(agent: Agent, constraintBox: Lightspeed.Box) {
+            // optionally overloaded by extending classes to update the given agent.
         }
     }
 }

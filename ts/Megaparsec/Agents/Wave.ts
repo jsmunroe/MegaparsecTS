@@ -1,26 +1,98 @@
 namespace Megaparsec {
     export class Wave extends Lightspeed.Element {
         private _config: any;
-        private _agents: Enemy[] = [];
+        private _agents: Agent[] = [];
+        private _activeAgents: Agent[] = [];
+
+        private _mode: number = Wave.offsetWaveMode;
+        private _delay: number = 1000.0; // 1 second.
+        private _interval: number = 2000.0; // 2 seconds; 
+
+        private _isFirstUpdate: boolean = true;
+
+        static readonly serialWaveMode = 1; // One agent released at a time
+        static readonly offsetWaveMode = 2; // Agents at intervals
+        static readonly instantWaveMode = 3; // All agents released at once
 
         constructor(config: any) {
-            super()
+            super();
 
             this._config = config;
+
+            this._mode = config.mode || this._mode;
+            this._delay = config.delay || this._delay;
+            this._interval = config.interval || this._interval;
         }
 
-        init(context: Lightspeed.ElementInitContext) : void {
+        init(context: Lightspeed.ElementInitContext): void {
             var controllers: Controller[] = this._config.controllers.map(i => ControllerFactory.current.create(i));
 
             this._config.images.forEach(i => {
                 var controller: Controller = Random.pick(controllers);
-                var agent = new Enemy(controller, i);
+                var agent: Agent = new Enemy(controller, i);
                 this._agents.push(agent);
             });
         }
 
         update(context: Lightspeed.FrameUpdateContext): void {
-            
+            // Purge dead agents.
+            this._agents = this._agents.filter(i => !i.isDead);
+            this._activeAgents = this._activeAgents.filter(i => !i.isDead);
+
+            if (!this._agents.length) {
+                this.kill();
+                return;
+            }
+
+            if (this._mode == Wave.offsetWaveMode) {
+                this.updateOffset(context);
+            } else if (this._mode == Wave.instantWaveMode) {
+                this.updateInstant(context);
+            } else {
+                this.updateSerial(context);
+            }
+
+            this._isFirstUpdate = false;
+        }
+
+        private updateSerial(context: Lightspeed.FrameUpdateContext): void {
+            if (!this._activeAgents.length) {
+                var newAgent = this._agents[0];
+                context.activate(newAgent);
+                this._activeAgents.push(newAgent);
+            }
+        }
+
+        private updateOffset(context: Lightspeed.FrameUpdateContext): void {
+            if (this._isFirstUpdate) {
+                context.delay(this._delay, this.udpateOffsetTimeout);
+            }
+        }
+
+        private udpateOffsetTimeout(context: Lightspeed.FrameUpdateContext): void {
+            // Get agents not in the active agents list.
+            var agentsLeft = this._agents.filter(i => this._activeAgents.indexOf(i) === -1);
+
+            if (agentsLeft.length) {
+                var newAgent = agentsLeft[0];
+                context.activate(newAgent);
+                this._activeAgents.push(newAgent);  
+            }
+
+            if (agentsLeft.length > 1) {
+                context.delay(this._interval, this.udpateOffsetTimeout);
+            }
+        }
+
+        private updateInstant(context: Lightspeed.FrameUpdateContext): void {
+            if (this._isFirstUpdate) {
+                for (let i = 0; i < this._agents.length; i++) {
+                    const agent = this._agents[i];
+
+                    context.activate(agent);
+                    this._activeAgents.push(agent);                          
+                }
+            }
         }
     }
 }

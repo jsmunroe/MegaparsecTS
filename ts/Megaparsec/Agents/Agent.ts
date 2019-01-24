@@ -5,6 +5,8 @@ namespace Megaparsec {
         private _controller: Controller;
         private _sprite: Lightspeed.Sprite;
 
+        public controllerProperties: any = { };
+
         constructor(controller: Controller, sprite: Lightspeed.Sprite) {
             super();
 
@@ -26,6 +28,10 @@ namespace Megaparsec {
 
         public set box(value) {
             this.position = value.center;
+        }
+
+        init(context: Lightspeed.ElementInitContext) : void {
+            this._controller.init(this, context.canvasBox);
         }
 
         update(context: Lightspeed.FrameUpdateContext) : void {

@@ -34,7 +34,7 @@ namespace Megaparsec {
         }
 
         init(context: Lightspeed.ElementInitContext) {
-            this.generateHills(-this._maxHillWidth, context.canvasWidth);
+            this.generateHills(-this._maxHillWidth, context.canvasBox.width);
         }
 
         update(context: Lightspeed.FrameUpdateContext) {

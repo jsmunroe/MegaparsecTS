@@ -1,3 +1,5 @@
+/// <reference path="Agents/Wave.ts" />
+
 var Config = {
     keys: {
         moveUp : ['ArrowUp', 'KeyW'],
@@ -22,6 +24,7 @@ var Config = {
         },
         playerShot: './img/player.shot.png',
         enemy1: {
+            mode: Megaparsec.Wave.offsetWaveMode,
             controllers: [
                 { name:'Swoop' },
                 { name:'Bounce' },
@@ -36,6 +39,7 @@ var Config = {
             ] 
         }, 
         enemy2: {
+            mode: Megaparsec.Wave.offsetWaveMode,
             controllers: [
                 { name:'Loop' }
             ],
@@ -48,6 +52,7 @@ var Config = {
             ]
         },
         enemy3: {
+            mode: Megaparsec.Wave.serialWaveMode,
             controllers: [
                 { name:'Target' }
             ],

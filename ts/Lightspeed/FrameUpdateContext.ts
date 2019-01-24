@@ -4,10 +4,14 @@ namespace Lightspeed {
         
         private _canvasBox: Box;
 
+        private _timeStamp: DOMHighResTimeStamp;
+
         private _elapsed: number;
         private _delta: number;
 
         private static _lastTimeStamp : number;
+
+        public currentElement : Element;
 
         constructor(engine : Engine, timeStamp : DOMHighResTimeStamp, fromPause? : boolean) {
             this._engine = engine;
@@ -17,6 +21,8 @@ namespace Lightspeed {
             if (!FrameUpdateContext._lastTimeStamp) {
                 FrameUpdateContext._lastTimeStamp = timeStamp;
             }
+
+            this._timeStamp = timeStamp;
 
             this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
             this._delta = this._elapsed / 1000;
@@ -39,6 +45,14 @@ namespace Lightspeed {
 
         public get canvasBox() :Box {
             return this._canvasBox;
+        }
+
+        public activate(element: Element): void {
+            this._engine.pushElement(element);
+        }
+
+        public delay(elapsed: number, action: (context: FrameUpdateContext) => void): void {
+            this._engine.requestTimeout(this._timeStamp + elapsed, this.currentElement, action);
         }
     }
 }

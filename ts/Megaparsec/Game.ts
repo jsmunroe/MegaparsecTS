@@ -16,6 +16,12 @@ namespace Megaparsec {
             this._player = new Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
+            
+            this.loadNextWave(config);
+        }
+
+        loadNextWave(config: any) {
+            this.pushElement(new Wave(config.agents.enemy1));
         }
 
         pause() {

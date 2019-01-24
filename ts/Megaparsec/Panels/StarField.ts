@@ -16,8 +16,8 @@ namespace Megaparsec {
             for (var i = 0; i < this._starCount; i++) {
   
                 this._stars.push({
-                    x: Random.next(context.canvasWidth),
-                    y: Random.next(context.canvasHeight),
+                    x: Random.next(context.canvasBox.width),
+                    y: Random.next(context.canvasBox.height),
                     relativeVelocity: Random.next(),
                     color: Color.getRandomColor(),
                     radius: Random.next() * 0.5,
