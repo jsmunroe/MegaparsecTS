@@ -41,7 +41,7 @@ namespace Megaparsec {
             game.load(Config);
             game.run();
 
-            Keyboard.Current.keys(Config.keys.pause, () => game.togglePause());
+            Utils.keyboard.keys(Config.keys.pause, () => game.togglePause());
 
             window.addEventListener('blur', () => {
                 if (!game.isPaused) {

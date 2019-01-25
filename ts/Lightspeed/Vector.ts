@@ -40,5 +40,12 @@ namespace Lightspeed {
             return this.x * other.x + this.y * other.y;
         }
 
+        public static fromPolar(argument: number, magnitude: number) {
+            return new Vector(
+                Math.cos(argument) * magnitude,
+                Math.sin(argument) * magnitude,
+            );
+        }
+
     }
 }

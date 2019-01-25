@@ -5,6 +5,10 @@ namespace Lightspeed {
 
         private _isDead: boolean = false;
 
+        private _canCollide: boolean = false;
+
+        private _box: Box
+
         public get id() {
             return this._id;
         }
@@ -17,16 +21,24 @@ namespace Lightspeed {
             this._id = Element._nextId++;
         }
 
-        init(context: ElementInitContext) : void {
+        init(context: Lightspeed.ElementInitContext) : void {
             // optionally overloaded by extending classes set the initial state of this element.
         }
 
-        update(context: FrameUpdateContext): void {
+        update(context: Lightspeed.FrameUpdateContext): void {
             // optionally overloaded by extending classes to update element state per frame time.
         }
 
-        render(context: FrameRenderContext): void {
+        render(context: Lightspeed.FrameRenderContext): void {
             // optionally overloaded by extending classes to render element.
+        }
+
+        collidesWith(other: Lightspeed.Element): boolean {
+            return false;
+        }
+        
+        collide(context: Lightspeed.ElementCollisionContext): void {
+            // optionally overloaded by extending classes to handle collission.
         }
 
         kill() : void {

@@ -81,6 +81,8 @@ namespace Lightspeed {
                 // Remove dead elements.
                 this._elements = this._elements.filter(p => !p.isDead)
 
+                this.checkCollisions();
+
                 for (let i = 0; i < this._elements.length; i++) {
                     const element = this._elements[i];
                     
@@ -106,6 +108,23 @@ namespace Lightspeed {
             }
 
             this.canvas.endRender(ctx);
+        }
+
+        private checkCollisions() {
+            var collisions = [];
+                for (var i = 0; i < this._elements.length; i++) {
+                for (var j = i + 1; j < this._elements.length; j++) {
+                    var first = this._elements[i];
+                    var second = this._elements[j];
+    
+                    if (first.collidesWith(second)) {
+                        first.collide(new ElementCollisionContext(this, second));
+                        second.collide(new ElementCollisionContext(this, first));
+                    }
+                }
+            }
+    
+            return collisions;
         }
 
         public run() {

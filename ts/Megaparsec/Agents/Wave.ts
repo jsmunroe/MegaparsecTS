@@ -4,22 +4,18 @@ namespace Megaparsec {
         private _agents: Agent[] = [];
         private _activeAgents: Agent[] = [];
 
-        private _mode: number = Wave.offsetWaveMode;
+        private _waveMode: WaveMode = WaveMode.OffsetWaveMode;
         private _delay: number = 1000.0; // 1 second.
         private _interval: number = 2000.0; // 2 seconds; 
 
         private _isFirstUpdate: boolean = true;
-
-        static readonly serialWaveMode = 1; // One agent released at a time
-        static readonly offsetWaveMode = 2; // Agents at intervals
-        static readonly instantWaveMode = 3; // All agents released at once
 
         constructor(config: any) {
             super();
 
             this._config = config;
 
-            this._mode = config.mode || this._mode;
+            this._waveMode = WaveMode[<string>config.waveMode];
             this._delay = config.delay || this._delay;
             this._interval = config.interval || this._interval;
         }
@@ -27,9 +23,16 @@ namespace Megaparsec {
         init(context: Lightspeed.ElementInitContext): void {
             var controllers: Controller[] = this._config.controllers.map(i => ControllerFactory.current.create(i));
 
+            var horizontalConstraintTopology : AgentConstraintToplogy = AgentConstraintToplogy[<string>this._config.horizontalConstraintTopology];
+            var verticalConstraintTopology : AgentConstraintToplogy = AgentConstraintToplogy[<string>this._config.verticalConstraintTopology];
+
             this._config.images.forEach(i => {
-                var controller: Controller = Random.pick(controllers);
+                var controller: Controller = Utils.random.pick(controllers);
+                
                 var agent: Agent = new Enemy(controller, i);
+                agent.horizontalConstraintTopology = horizontalConstraintTopology;
+                agent.verticalConstraintTopology = verticalConstraintTopology;
+
                 this._agents.push(agent);
             });
         }
@@ -44,9 +47,9 @@ namespace Megaparsec {
                 return;
             }
 
-            if (this._mode == Wave.offsetWaveMode) {
+            if (this._waveMode == WaveMode.OffsetWaveMode) {
                 this.updateOffset(context);
-            } else if (this._mode == Wave.instantWaveMode) {
+            } else if (this._waveMode == WaveMode.InstantWaveMode) {
                 this.updateInstant(context);
             } else {
                 this.updateSerial(context);
@@ -94,5 +97,11 @@ namespace Megaparsec {
                 }
             }
         }
+    }
+
+    export enum WaveMode {
+        SerialWaveMode = 1, // One agent released at a time
+        OffsetWaveMode = 2, // Agents at intervals
+        InstantWaveMode = 3 // All agents released at once
     }
 }

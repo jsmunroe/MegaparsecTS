@@ -45,20 +45,24 @@ namespace Lightspeed {
             return new Box(this.left - cx/2, this.top - cy/2, this.width + cx, this.height + cy);
         }
 
-        public alignLeft(left: number) {
+        public alignLeft(left: number) :Box  {
             return new Box(left, this.top, this.width, this.height);
         }
 
-        public alignTop(top: number) {
+        public alignTop(top: number) :Box  {
             return new Box(this.left, top, this.width, this.height);
         }
 
-        public alignRight(right: number) {
+        public alignRight(right: number) :Box  {
             return new Box(right - this.width, this.top, this.width, this.height);
         }
 
-        public alignBottom(bottom: number) {
+        public alignBottom(bottom: number) :Box  {
             return new Box(this.left, bottom - this.height, this.width, this.height);
+        }
+
+        public offset(cx: number, cy: number) :Box  {
+            return new Box(this.left + cx, this.top + cy, this.width, this.height);
         }
 
         public collides(other: Box) :boolean {

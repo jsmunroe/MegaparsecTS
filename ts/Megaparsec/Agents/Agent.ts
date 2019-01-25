@@ -1,9 +1,11 @@
 /// <reference path="../../LightSpeed/InertialElement.ts" />
-
 namespace Megaparsec {
     export class Agent extends Lightspeed.InertialElement {
         private _controller: Controller;
         private _sprite: Lightspeed.Sprite;
+        
+        public horizontalConstraintTopology: AgentConstraintToplogy = AgentConstraintToplogy.None;
+        public verticalConstraintTopology: AgentConstraintToplogy = AgentConstraintToplogy.None;
 
         public controllerProperties: any = { };
 
@@ -43,5 +45,24 @@ namespace Megaparsec {
         render(context: Lightspeed.FrameRenderContext) : void {
             this._sprite.draw(context.ctx, this.position);
         }
+
+        collidesWith(other: Lightspeed.Element): boolean {
+            if (other instanceof Agent == false) {
+                return false;
+            }
+
+            return this.box.collides((<Agent>other).box);
+        }
+
+        collide(context: Lightspeed.ElementCollisionContext): void {
+            this.kill();
+            context.pushElement(new Explosion(this));
+        }
+    }
+
+    export enum AgentConstraintToplogy {
+        None = 0,
+        Block = 1,
+        Wrap = 2
     }
 }

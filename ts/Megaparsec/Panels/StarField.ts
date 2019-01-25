@@ -16,12 +16,12 @@ namespace Megaparsec {
             for (var i = 0; i < this._starCount; i++) {
   
                 this._stars.push({
-                    x: Random.next(context.canvasBox.width),
-                    y: Random.next(context.canvasBox.height),
-                    relativeVelocity: Random.next(),
+                    x: Utils.random.next(context.canvasBox.width),
+                    y: Utils.random.next(context.canvasBox.height),
+                    relativeVelocity: Utils.random.next(),
                     color: Color.getRandomColor(),
-                    radius: Random.next() * 0.5,
-                    twinkle: Random.nextInt(5000) === 1 ? 0 : 1
+                    radius: Utils.random.next() * 0.5,
+                    twinkle: Utils.random.nextInt(5000) === 1 ? 0 : 1
                 });
             }
         }
@@ -36,9 +36,9 @@ namespace Megaparsec {
                 star.x += localVelocityX * context.delta;
                 star.y += localVelocityY * context.delta;
 
-                if (star.twinkle && Random.nextInt(5000) === 1) {
+                if (star.twinkle && Utils.random.nextInt(5000) === 1) {
                     star.twinkle = 0;
-                } else if (!star.twinkle && Random.nextInt(50) === 1) {
+                } else if (!star.twinkle && Utils.random.nextInt(50) === 1) {
                     star.twinkle = 1;
                 }
     
