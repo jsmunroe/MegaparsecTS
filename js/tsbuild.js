@@ -700,6 +700,52 @@ var Config = {
         }
     }
 };
+var Lightspeed;
+(function (Lightspeed) {
+    var Utils;
+    (function (Utils) {
+        var Messenger = /** @class */ (function () {
+            function Messenger() {
+                this._subscriptions = [];
+            }
+            Messenger.prototype.subscribe = function (source, messageName, callback) {
+                this._subscriptions.push({
+                    source: source,
+                    messageName: messageName,
+                    callback: callback
+                });
+            };
+            Messenger.prototype.unsubsribe = function (source) {
+                this._subscriptions = this._subscriptions.filter(function (i) { return i.source === source; });
+            };
+            Messenger.prototype.publish = function (message) {
+                this._subscriptions.filter(function (i) { return i.messageName === message.name; }).forEach(function (i) { return i.callback.bind(i.source).call(message); });
+            };
+            return Messenger;
+        }());
+        Utils.Messenger = Messenger;
+        var Message = /** @class */ (function () {
+            function Message(name) {
+                this._name = name;
+            }
+            Object.defineProperty(Message.prototype, "name", {
+                get: function () {
+                    return this._name;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            return Message;
+        }());
+        Utils.Message = Message;
+        var Subscription = /** @class */ (function () {
+            function Subscription() {
+            }
+            return Subscription;
+        }());
+    })(Utils = Lightspeed.Utils || (Lightspeed.Utils = {}));
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="../LightSpeed/Utils/Messenger.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var Game = /** @class */ (function (_super) {
@@ -709,7 +755,15 @@ var Megaparsec;
             _this._pauseMessage = new Megaparsec.Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
             return _this;
         }
+        Object.defineProperty(Game, "messenger", {
+            get: function () {
+                return this._messenger;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Game.prototype.load = function (config) {
+            var _this = this;
             this.clear();
             this.pushElement(new Megaparsec.Background());
             this.pushElement(new Megaparsec.StarField(200));
@@ -718,6 +772,7 @@ var Megaparsec;
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
             this.loadNextWave(config);
+            Game.messenger.subscribe(this, Megaparsec.WaveKilledMessage.messageName, function (i) { return _this.loadNextWave(config); });
         };
         Game.prototype.loadNextWave = function (config) {
             this.pushElement(new Megaparsec.Wave(config.agents.enemy1));
@@ -741,6 +796,7 @@ var Megaparsec;
                 }
             });
         };
+        Game._messenger = new Lightspeed.Utils.Messenger();
         return Game;
     }(Lightspeed.Engine));
     Megaparsec.Game = Game;
@@ -1042,6 +1098,7 @@ var Megaparsec;
             this._activeAgents = this._activeAgents.filter(function (i) { return !i.isDead; });
             if (!this._agents.length) {
                 this.kill();
+                Megaparsec.Game.messenger.publish(new Megaparsec.WaveKilledMessage(this));
                 return;
             }
             if (this._waveMode == WaveMode.OffsetWaveMode) {
@@ -1402,6 +1459,24 @@ var Megaparsec;
         return Explosion;
     }(Lightspeed.InertialElement));
     Megaparsec.Explosion = Explosion;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var WaveKilledMessage = /** @class */ (function (_super) {
+        __extends(WaveKilledMessage, _super);
+        function WaveKilledMessage(wave) {
+            var _this = _super.call(this, WaveKilledMessage.messageName) || this;
+            _this.wave = wave;
+            return _this;
+        }
+        Object.defineProperty(WaveKilledMessage, "messageName", {
+            get: function () { return "WaveKilledMessage"; },
+            enumerable: true,
+            configurable: true
+        });
+        return WaveKilledMessage;
+    }(Lightspeed.Utils.Message));
+    Megaparsec.WaveKilledMessage = WaveKilledMessage;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {

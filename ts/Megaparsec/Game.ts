@@ -1,10 +1,18 @@
+/// <reference path="../LightSpeed/Utils/Messenger.ts" />
+
 namespace Megaparsec {
     export class Game extends Lightspeed.Engine {
         private static s_current: Game;
         
+        private static _messenger: Lightspeed.Utils.Messenger = new Lightspeed.Utils.Messenger();
+
         private _player: Player;
 
         private _pauseMessage = new Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
+
+        static get messenger() {
+            return this._messenger;
+        }
 
         load(config: any) {
             this.clear();
@@ -18,6 +26,7 @@ namespace Megaparsec {
             this.pushElement(this._player);
             
             this.loadNextWave(config);
+            Game.messenger.subscribe(this, WaveKilledMessage.messageName, i => this.loadNextWave(config));
         }
 
         loadNextWave(config: any) {
