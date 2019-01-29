@@ -5,10 +5,6 @@ namespace Lightspeed {
 
         private _isDead: boolean = false;
 
-        private _canCollide: boolean = false;
-
-        private _box: Box
-
         public get id() {
             return this._id;
         }

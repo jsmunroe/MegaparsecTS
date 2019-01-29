@@ -23,15 +23,15 @@ namespace Megaparsec {
         init(context: Lightspeed.ElementInitContext): void {
             var controllers: Controller[] = this._config.controllers.map(i => ControllerFactory.current.create(i));
 
-            var horizontalConstraintTopology : AgentConstraintToplogy = AgentConstraintToplogy[<string>this._config.horizontalConstraintTopology];
-            var verticalConstraintTopology : AgentConstraintToplogy = AgentConstraintToplogy[<string>this._config.verticalConstraintTopology];
+            var horizontalConstraintTopology : ConstraintToplogy = ConstraintToplogy[<string>this._config.horizontalConstraintTopology];
+            var verticalConstraintTopology : ConstraintToplogy = ConstraintToplogy[<string>this._config.verticalConstraintTopology];
+            
+            var constrainer = new Constrainer(horizontalConstraintTopology, verticalConstraintTopology);
 
             this._config.images.forEach(i => {
                 var controller: Controller = Utils.random.pick(controllers);
                 
-                var agent: Agent = new Enemy(controller, i);
-                agent.horizontalConstraintTopology = horizontalConstraintTopology;
-                agent.verticalConstraintTopology = verticalConstraintTopology;
+                var agent: Agent = new Enemy(controller, constrainer, i);
 
                 this._agents.push(agent);
             });

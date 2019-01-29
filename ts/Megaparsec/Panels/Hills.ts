@@ -64,9 +64,7 @@ namespace Megaparsec {
             var canvasHeight = context.canvasHeight;
             var canvasWidth = context.canvasWidth;
             var ctx = context.ctx;
-
-            ctx.save();
-    
+   
             var hills = this._hills.slice(0).sort((i, j) => i.depth - j.depth);
             for (let i = 0; i < hills.length; i++) {
                 const hill = hills[i];
@@ -85,6 +83,6 @@ namespace Megaparsec {
     
                 ctx.fill();
             }
-            ctx.restore();        }
+        }
     }
 }

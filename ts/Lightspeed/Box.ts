@@ -61,7 +61,11 @@ namespace Lightspeed {
             return new Box(this.left, bottom - this.height, this.width, this.height);
         }
 
-        public offset(cx: number, cy: number) :Box  {
+        public offsetV(vector: Vector) :Box {
+            return this.offset(vector.x, vector.y);
+        }
+        
+        public offset(cx?: number, cy?: number) :Box  {
             return new Box(this.left + cx, this.top + cy, this.width, this.height);
         }
 

@@ -1,35 +1,18 @@
-/// <reference path="../../LightSpeed/InertialElement.ts" />
+/// <reference path="GameObject.ts" />
 namespace Megaparsec {
-    export class Agent extends Lightspeed.InertialElement {
+    export class Agent extends GameObject {
         private _controller: Controller;
         private _sprite: Lightspeed.Sprite;
         
-        public horizontalConstraintTopology: AgentConstraintToplogy = AgentConstraintToplogy.None;
-        public verticalConstraintTopology: AgentConstraintToplogy = AgentConstraintToplogy.None;
-
         public controllerProperties: any = { };
 
-        constructor(controller: Controller, sprite: Lightspeed.Sprite) {
-            super();
+        constructor(controller: Controller, constrainer: Constrainer, sprite: Lightspeed.Sprite) {
+            super(sprite.width, sprite.height, constrainer);
 
             this._controller = controller;
             this._sprite = sprite;
-        }
 
-        public get width() {
-            return this._sprite.width;
-        }
-
-        public get height() {
-            return this._sprite.height;
-        }
-
-        public get box() :Lightspeed.Box {
-            return Lightspeed.Box.fromCenter(this.position, this.width, this.height);
-        }
-
-        public set box(value) {
-            this.position = value.center;
+            sprite.registerLoadCallback(i => this.updateBox(i.width, i.height));
         }
 
         init(context: Lightspeed.ElementInitContext) : void {
@@ -37,7 +20,7 @@ namespace Megaparsec {
         }
 
         update(context: Lightspeed.FrameUpdateContext) : void {
-            this._controller.update(this, context.canvasBox);
+            this._controller.update(this, context);
 
             super.update(context);
         }
@@ -46,23 +29,13 @@ namespace Megaparsec {
             this._sprite.draw(context.ctx, this.position);
         }
 
-        collidesWith(other: Lightspeed.Element): boolean {
-            if (other instanceof Agent == false) {
-                return false;
-            }
-
-            return this.box.collides((<Agent>other).box);
+        collide(context: Lightspeed.ElementCollisionContext): void {
+            this.explode(context);
         }
 
-        collide(context: Lightspeed.ElementCollisionContext): void {
+        explode(context: Lightspeed.ElementCollisionContext) {
             this.kill();
             context.pushElement(new Explosion(this));
         }
-    }
-
-    export enum AgentConstraintToplogy {
-        None = 0,
-        Block = 1,
-        Wrap = 2
     }
 }

@@ -7,7 +7,9 @@ namespace Megaparsec {
             super();
         }
 
-        updateAgent(agent: Agent, constraintBox: Lightspeed.Box) {
+        updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
+            var properties = agent.controllerProperties;
+
             var keys = Config.keys;
 
             var accelerationX: number = 0;
@@ -34,6 +36,14 @@ namespace Megaparsec {
             if (Utils.keyboard.keys(keys.moveRight)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX += this._movementAcceleration;
+                }
+            }
+
+            properties.lastFireElapsed += context.elapsed;
+            if (Utils.keyboard.keys(keys.primaryFire)) {
+                if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
+                    context.activate(new Shot(agent, new Lightspeed.Vector(800)));
+                    properties.lastFireElapsed = 0;
                 }
             }
 

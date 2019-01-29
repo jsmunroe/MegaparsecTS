@@ -18,9 +18,7 @@ namespace Megaparsec {
             var canvasHeight = context.canvasHeight;
             var canvasWidth = context.canvasWidth;
             var ctx = context.ctx;
-
-            ctx.save();
-    
+   
             ctx.fillStyle = this.color;
             ctx.font = `${this.textFontSize}px Arial`;
 
@@ -35,8 +33,6 @@ namespace Megaparsec {
                 var subtextBounds = ctx.measureText(this._subtext);
                 ctx.fillText(this._subtext, canvasWidth / 2 - subtextBounds.width / 2, canvasHeight / 2 - subtextHeight / 2 + subtextHeight / 2)
             }
-
-            ctx.restore(); 
        }
     }
 }

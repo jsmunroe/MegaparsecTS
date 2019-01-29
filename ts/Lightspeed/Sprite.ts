@@ -1,6 +1,8 @@
 namespace Lightspeed {
     export class Sprite {
         private _isLoaded: boolean = false;
+
+        private _onLoadCallbacks: ((sprit: Sprite) => void)[] = [];
         
         private _image: HTMLImageElement;
 
@@ -34,8 +36,19 @@ namespace Lightspeed {
                     this._height = this._image.height * scale;
 
                     this._isLoaded = true;
+                    this._onLoadCallbacks.forEach(i => i(this));
+                    this._onLoadCallbacks = [];
                 };
             }
+        }
+
+        registerLoadCallback(callback: (sprite: Sprite) => void) {
+            if (this._isLoaded) {
+                callback(this);
+                return;
+            }
+
+            this._onLoadCallbacks.push(callback);
         }
 
         draw(ctx: CanvasRenderingContext2D, position: Vector) {

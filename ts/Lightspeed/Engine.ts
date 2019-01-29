@@ -103,8 +103,12 @@ namespace Lightspeed {
 
             for (let i = 0; i < this._elements.length; i++) {
                 const element = this._elements[i];
+
+                ctx.save();
                 
                 element.render(renderContext);
+
+                ctx.restore();
             }
 
             this.canvas.endRender(ctx);

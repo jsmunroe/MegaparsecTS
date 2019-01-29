@@ -26,7 +26,7 @@ namespace Megaparsec {
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
         }
 
-        updateAgent(agent: Agent, constraintBox: Lightspeed.Box) {
+        updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
             if (properties.phase === 0) // swooping

@@ -59,8 +59,6 @@ namespace Megaparsec {
         render(context: Lightspeed.FrameRenderContext) {
             var ctx = context.ctx;
             
-            ctx.save();
-
             this._stars.forEach(i => {
     
                 if (i.twinkle) {
@@ -72,8 +70,6 @@ namespace Megaparsec {
                 }
     
             });
-    
-            ctx.restore();
         }
     }
 }

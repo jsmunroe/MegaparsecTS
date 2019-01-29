@@ -86,6 +86,9 @@ var Lightspeed;
         Box.prototype.alignBottom = function (bottom) {
             return new Box(this.left, bottom - this.height, this.width, this.height);
         };
+        Box.prototype.offsetV = function (vector) {
+            return this.offset(vector.x, vector.y);
+        };
         Box.prototype.offset = function (cx, cy) {
             return new Box(this.left + cx, this.top + cy, this.width, this.height);
         };
@@ -175,7 +178,6 @@ var Lightspeed;
     var Element = /** @class */ (function () {
         function Element() {
             this._isDead = false;
-            this._canCollide = false;
             this._id = Element._nextId++;
         }
         Object.defineProperty(Element.prototype, "id", {
@@ -344,7 +346,9 @@ var Lightspeed;
             var renderContext = new Lightspeed.FrameRenderContext(this, ctx);
             for (var i = 0; i < this._elements.length; i++) {
                 var element = this._elements[i];
+                ctx.save();
                 element.render(renderContext);
+                ctx.restore();
             }
             this.canvas.endRender(ctx);
         };
@@ -511,6 +515,7 @@ var Lightspeed;
         function Sprite(imagePath, width, height) {
             var _this = this;
             this._isLoaded = false;
+            this._onLoadCallbacks = [];
             this.opacity = 1;
             this._image = new Image();
             this._image.src = imagePath;
@@ -525,6 +530,8 @@ var Lightspeed;
                     _this._width = _this._image.width * scale;
                     _this._height = _this._image.height * scale;
                     _this._isLoaded = true;
+                    _this._onLoadCallbacks.forEach(function (i) { return i(_this); });
+                    _this._onLoadCallbacks = [];
                 };
             }
         }
@@ -542,6 +549,13 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        Sprite.prototype.registerLoadCallback = function (callback) {
+            if (this._isLoaded) {
+                callback(this);
+                return;
+            }
+            this._onLoadCallbacks.push(callback);
+        };
         Sprite.prototype.draw = function (ctx, position) {
             if (!this._isLoaded) {
                 return;
@@ -619,7 +633,8 @@ var Config = {
         moveDown: ['ArrowDown', 'KeyS'],
         moveLeft: ['ArrowLeft', 'KeyA'],
         moveRight: ['ArrowRight', 'KeyD'],
-        pause: ['KeyP', 'Pause']
+        pause: ['KeyP', 'Pause'],
+        primaryFire: ['Space']
     },
     strings: {
         pauseMessage: 'Paused',
@@ -843,79 +858,96 @@ var Megaparsec;
     Megaparsec.Color = Color;
 })(Megaparsec || (Megaparsec = {}));
 /// <reference path="../../LightSpeed/InertialElement.ts" />
+var Box = Lightspeed.Box;
+var Megaparsec;
+(function (Megaparsec) {
+    var GameObject = /** @class */ (function (_super) {
+        __extends(GameObject, _super);
+        function GameObject(width, height, constrainer) {
+            var _this = _super.call(this) || this;
+            _this.controllerProperties = {};
+            _this._box = new Box(-width / 2, -height / 2, width, height);
+            _this._constrainer = constrainer;
+            return _this;
+        }
+        Object.defineProperty(GameObject.prototype, "width", {
+            get: function () {
+                return this.box.width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(GameObject.prototype, "height", {
+            get: function () {
+                return this.box.height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(GameObject.prototype, "box", {
+            get: function () {
+                return this._box.offsetV(this.position);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        GameObject.prototype.update = function (context) {
+            this._constrainer.constrain(this, context);
+            _super.prototype.update.call(this, context);
+        };
+        GameObject.prototype.collidesWith = function (other) {
+            if (other instanceof GameObject == false) {
+                return false;
+            }
+            return this.box.collides(other.box);
+        };
+        GameObject.prototype.updateBox = function (width, height) {
+            this._box = new Box(-width / 2, -height / 2, width, height);
+        };
+        return GameObject;
+    }(Lightspeed.InertialElement));
+    Megaparsec.GameObject = GameObject;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="GameObject.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var Agent = /** @class */ (function (_super) {
         __extends(Agent, _super);
-        function Agent(controller, sprite) {
-            var _this = _super.call(this) || this;
-            _this.horizontalConstraintTopology = AgentConstraintToplogy.None;
-            _this.verticalConstraintTopology = AgentConstraintToplogy.None;
+        function Agent(controller, constrainer, sprite) {
+            var _this = _super.call(this, sprite.width, sprite.height, constrainer) || this;
             _this.controllerProperties = {};
             _this._controller = controller;
             _this._sprite = sprite;
+            sprite.registerLoadCallback(function (i) { return _this.updateBox(i.width, i.height); });
             return _this;
         }
-        Object.defineProperty(Agent.prototype, "width", {
-            get: function () {
-                return this._sprite.width;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Agent.prototype, "height", {
-            get: function () {
-                return this._sprite.height;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Agent.prototype, "box", {
-            get: function () {
-                return Lightspeed.Box.fromCenter(this.position, this.width, this.height);
-            },
-            set: function (value) {
-                this.position = value.center;
-            },
-            enumerable: true,
-            configurable: true
-        });
         Agent.prototype.init = function (context) {
             this._controller.init(this, context.canvasBox);
         };
         Agent.prototype.update = function (context) {
-            this._controller.update(this, context.canvasBox);
+            this._controller.update(this, context);
             _super.prototype.update.call(this, context);
         };
         Agent.prototype.render = function (context) {
             this._sprite.draw(context.ctx, this.position);
         };
-        Agent.prototype.collidesWith = function (other) {
-            if (other instanceof Agent == false) {
-                return false;
-            }
-            return this.box.collides(other.box);
-        };
         Agent.prototype.collide = function (context) {
+            this.explode(context);
+        };
+        Agent.prototype.explode = function (context) {
             this.kill();
             context.pushElement(new Megaparsec.Explosion(this));
         };
         return Agent;
-    }(Lightspeed.InertialElement));
+    }(Megaparsec.GameObject));
     Megaparsec.Agent = Agent;
-    var AgentConstraintToplogy;
-    (function (AgentConstraintToplogy) {
-        AgentConstraintToplogy[AgentConstraintToplogy["None"] = 0] = "None";
-        AgentConstraintToplogy[AgentConstraintToplogy["Block"] = 1] = "Block";
-        AgentConstraintToplogy[AgentConstraintToplogy["Wrap"] = 2] = "Wrap";
-    })(AgentConstraintToplogy = Megaparsec.AgentConstraintToplogy || (Megaparsec.AgentConstraintToplogy = {}));
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
     var Enemy = /** @class */ (function (_super) {
         __extends(Enemy, _super);
-        function Enemy(controller, imagePath) {
-            return _super.call(this, controller, new Lightspeed.Sprite(imagePath, Config.imageScale)) || this;
+        function Enemy(controller, constrainer, imagePath) {
+            return _super.call(this, controller, constrainer, new Lightspeed.Sprite(imagePath, Config.imageScale)) || this;
         }
         return Enemy;
     }(Megaparsec.Agent));
@@ -926,10 +958,7 @@ var Megaparsec;
     var Player = /** @class */ (function (_super) {
         __extends(Player, _super);
         function Player() {
-            var _this = _super.call(this, new Megaparsec.Human, new Lightspeed.Sprite(Config.agents.player.image, Config.imageScale)) || this;
-            _this.horizontalConstraintTopology = Megaparsec.AgentConstraintToplogy.Block;
-            _this.verticalConstraintTopology = Megaparsec.AgentConstraintToplogy.Block;
-            return _this;
+            return _super.call(this, new Megaparsec.Human, Megaparsec.Constrainer.boxIn, new Lightspeed.Sprite(Config.agents.player.image, Config.imageScale)) || this;
         }
         Player.prototype.collide = function (context) {
             // optionally overloaded by extending classes to handle collission.
@@ -937,6 +966,45 @@ var Megaparsec;
         return Player;
     }(Megaparsec.Agent));
     Megaparsec.Player = Player;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Shot = /** @class */ (function (_super) {
+        __extends(Shot, _super);
+        function Shot(origin, velocity, acceleration) {
+            var _this = _super.call(this, 20, 5, Megaparsec.Constrainer.killOutOfBounds) || this;
+            _this._passesThroughOnHit = false;
+            _this._origin = origin;
+            _this._color = 'CornFlowerBlue';
+            _this.position = origin.position;
+            _this.velocity = velocity;
+            acceleration && (_this.acceleration = acceleration);
+            return _this;
+        }
+        Shot.prototype.update = function (context) {
+            if (!context.canvasBox.collides(this.box)) {
+                this.kill();
+            }
+            _super.prototype.update.call(this, context);
+        };
+        Shot.prototype.render = function (context) {
+            var ctx = context.ctx;
+            var box = this.box;
+            ctx.fillStyle = this._color;
+            ctx.fillRect(box.left, box.top, box.width, box.height);
+        };
+        Shot.prototype.collide = function (context) {
+            if (context.otherElement instanceof Megaparsec.Agent && context.otherElement != this._origin) {
+                var agent = context.otherElement;
+                agent.explode(context);
+                if (!this._passesThroughOnHit) {
+                    this.kill();
+                }
+            }
+        };
+        return Shot;
+    }(Megaparsec.GameObject));
+    Megaparsec.Shot = Shot;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -959,13 +1027,12 @@ var Megaparsec;
         Wave.prototype.init = function (context) {
             var _this = this;
             var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i); });
-            var horizontalConstraintTopology = Megaparsec.AgentConstraintToplogy[this._config.horizontalConstraintTopology];
-            var verticalConstraintTopology = Megaparsec.AgentConstraintToplogy[this._config.verticalConstraintTopology];
+            var horizontalConstraintTopology = Megaparsec.ConstraintToplogy[this._config.horizontalConstraintTopology];
+            var verticalConstraintTopology = Megaparsec.ConstraintToplogy[this._config.verticalConstraintTopology];
+            var constrainer = new Megaparsec.Constrainer(horizontalConstraintTopology, verticalConstraintTopology);
             this._config.images.forEach(function (i) {
                 var controller = Megaparsec.Utils.random.pick(controllers);
-                var agent = new Megaparsec.Enemy(controller, i);
-                agent.horizontalConstraintTopology = horizontalConstraintTopology;
-                agent.verticalConstraintTopology = verticalConstraintTopology;
+                var agent = new Megaparsec.Enemy(controller, constrainer, i);
                 _this._agents.push(agent);
             });
         };
@@ -1034,6 +1101,104 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var Constrainer = /** @class */ (function () {
+        function Constrainer(horizontalConstraintTopology, verticalConstraintTopology) {
+            this._horizontalConstraintTopology = horizontalConstraintTopology;
+            this._verticalConstraintTopology = verticalConstraintTopology;
+        }
+        Constrainer.prototype.constrain = function (gameObject, context) {
+            var constraintBox = context.canvasBox;
+            if (constraintBox.contains(gameObject.box) || !gameObject.controllerProperties.constrain) {
+                return true;
+            }
+            if (this._horizontalConstraintTopology == ConstraintToplogy.Block) {
+                if (gameObject.box.left < constraintBox.left) {
+                    gameObject.position = gameObject.box.alignLeft(constraintBox.left).center;
+                }
+                if (gameObject.box.right > constraintBox.right) {
+                    gameObject.position = gameObject.box.alignRight(constraintBox.right).center;
+                }
+                gameObject.acceleration = new Lightspeed.Vector(0, gameObject.acceleration.y);
+                gameObject.velocity = new Lightspeed.Vector(0, gameObject.velocity.y);
+            }
+            if (this._horizontalConstraintTopology == ConstraintToplogy.Wrap) {
+                if (gameObject.box.right < constraintBox.left && gameObject.velocity.x <= 0) {
+                    gameObject.position = gameObject.box.alignLeft(constraintBox.right).offset(gameObject.box.width * 2, 0).center;
+                }
+                if (gameObject.box.left > constraintBox.right && gameObject.velocity.x >= 0) {
+                    gameObject.position = gameObject.box.alignRight(constraintBox.left).offset(-gameObject.box.width * 2, 0).center;
+                }
+            }
+            if (this._horizontalConstraintTopology == ConstraintToplogy.Kill) {
+                if (gameObject.box.right < constraintBox.left && gameObject.velocity.x <= 0) {
+                    gameObject.kill();
+                }
+                if (gameObject.box.left > constraintBox.right && gameObject.velocity.x >= 0) {
+                    gameObject.kill();
+                }
+            }
+            if (this._verticalConstraintTopology == ConstraintToplogy.Block) {
+                if (gameObject.box.top < constraintBox.top) {
+                    gameObject.position = gameObject.box.alignTop(constraintBox.top).center;
+                }
+                if (gameObject.box.bottom > constraintBox.bottom) {
+                    gameObject.position = gameObject.box.alignBottom(constraintBox.bottom).center;
+                }
+                gameObject.acceleration = new Lightspeed.Vector(gameObject.acceleration.x, 0);
+                gameObject.velocity = new Lightspeed.Vector(gameObject.velocity.x, 0);
+            }
+            if (this._verticalConstraintTopology == ConstraintToplogy.Wrap) {
+                if (gameObject.box.bottom < constraintBox.top && gameObject.velocity.y >= 0) {
+                    gameObject.position = gameObject.box.alignTop(constraintBox.bottom).offset(0, gameObject.box.height * 2).center;
+                }
+                else if (gameObject.box.top > constraintBox.bottom && gameObject.velocity.y <= 0) {
+                    gameObject.position = gameObject.box.alignBottom(constraintBox.top).offset(0, -gameObject.box.height * 2).center;
+                }
+            }
+            if (this._verticalConstraintTopology == ConstraintToplogy.Kill) {
+                if (gameObject.box.bottom < constraintBox.top && gameObject.velocity.y >= 0) {
+                    gameObject.kill();
+                }
+                else if (gameObject.box.top > constraintBox.bottom && gameObject.velocity.y <= 0) {
+                    gameObject.kill();
+                }
+            }
+            return false;
+        };
+        Object.defineProperty(Constrainer, "killOutOfBounds", {
+            get: function () {
+                return new Constrainer(ConstraintToplogy.Kill, ConstraintToplogy.Kill);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constrainer, "boxIn", {
+            get: function () {
+                return new Constrainer(ConstraintToplogy.Block, ConstraintToplogy.Block);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constrainer, "wrapHorizontally", {
+            get: function () {
+                return new Constrainer(ConstraintToplogy.Wrap, ConstraintToplogy.Block);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Constrainer;
+    }());
+    Megaparsec.Constrainer = Constrainer;
+    var ConstraintToplogy;
+    (function (ConstraintToplogy) {
+        ConstraintToplogy[ConstraintToplogy["None"] = 0] = "None";
+        ConstraintToplogy[ConstraintToplogy["Block"] = 1] = "Block";
+        ConstraintToplogy[ConstraintToplogy["Wrap"] = 2] = "Wrap";
+        ConstraintToplogy[ConstraintToplogy["Kill"] = 3] = "Kill";
+    })(ConstraintToplogy = Megaparsec.ConstraintToplogy || (Megaparsec.ConstraintToplogy = {}));
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
     var Controller = /** @class */ (function () {
         function Controller() {
         }
@@ -1041,55 +1206,11 @@ var Megaparsec;
             agent.controllerProperties.constrain = true;
             // optionally overloaded by extending classes to set given agents initial position.
         };
-        Controller.prototype.update = function (agent, constraintBox) {
-            this.updateAgent(agent, constraintBox);
-            this.constrain(agent, constraintBox);
+        Controller.prototype.update = function (agent, context) {
+            this.updateAgent(agent, context);
         };
-        Controller.prototype.updateAgent = function (agent, constraintBox) {
+        Controller.prototype.updateAgent = function (agent, context) {
             // optionally overloaded by extending classes to update the given agent.
-        };
-        Controller.prototype.constrain = function (agent, constraintBox) {
-            if (constraintBox.contains(agent.box) || !agent.controllerProperties.constrain) {
-                return true;
-            }
-            if (agent.horizontalConstraintTopology == Megaparsec.AgentConstraintToplogy.Block) {
-                if (agent.box.left < constraintBox.left) {
-                    agent.box = agent.box.alignLeft(constraintBox.left);
-                }
-                if (agent.box.right > constraintBox.right) {
-                    agent.box = agent.box.alignRight(constraintBox.right);
-                }
-                agent.acceleration = new Lightspeed.Vector(0, agent.acceleration.y);
-                agent.velocity = new Lightspeed.Vector(0, agent.velocity.y);
-            }
-            if (agent.horizontalConstraintTopology == Megaparsec.AgentConstraintToplogy.Wrap) {
-                if (agent.box.right < constraintBox.left && agent.velocity.x <= 0) {
-                    agent.box = agent.box.alignLeft(constraintBox.right).offset(agent.box.width * 2, 0);
-                }
-                if (agent.box.left > constraintBox.right && agent.velocity.x >= 0) {
-                    agent.box = agent.box.alignRight(constraintBox.left).offset(-agent.box.width * 2, 0);
-                }
-            }
-            if (agent.verticalConstraintTopology == Megaparsec.AgentConstraintToplogy.Block) {
-                if (agent.box.top < constraintBox.top) {
-                    agent.box = agent.box.alignTop(constraintBox.top);
-                }
-                if (agent.box.bottom > constraintBox.bottom) {
-                    agent.box = agent.box.alignBottom(constraintBox.bottom);
-                }
-                agent.acceleration = new Lightspeed.Vector(agent.acceleration.x, 0);
-                agent.velocity = new Lightspeed.Vector(agent.velocity.x, 0);
-            }
-            if (agent.verticalConstraintTopology == Megaparsec.AgentConstraintToplogy.Wrap) {
-                if (agent.box.bottom < constraintBox.top && agent.velocity.y >= 0) {
-                    agent.box = agent.box.alignTop(constraintBox.bottom).offset(0, agent.box.height * 2);
-                }
-                else if (agent.box.top > constraintBox.bottom && agent.velocity.y <= 0) {
-                    agent.box = agent.box.alignBottom(constraintBox.top).offset(0, -agent.box.height * 2);
-                    ;
-                }
-            }
-            return false;
         };
         return Controller;
     }());
@@ -1117,7 +1238,7 @@ var Megaparsec;
             properties.targetVelocity = new Lightspeed.Vector(-200, 0);
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
         };
-        Swoop.prototype.updateAgent = function (agent, constraintBox) {
+        Swoop.prototype.updateAgent = function (agent, context) {
             var properties = agent.controllerProperties;
             if (properties.phase === 0) // swooping
              {
@@ -1177,7 +1298,8 @@ var Megaparsec;
             _this._movementAcceleration = 50;
             return _this;
         }
-        Human.prototype.updateAgent = function (agent, constraintBox) {
+        Human.prototype.updateAgent = function (agent, context) {
+            var properties = agent.controllerProperties;
             var keys = Config.keys;
             var accelerationX = 0;
             var accelerationY = 0;
@@ -1199,6 +1321,13 @@ var Megaparsec;
             if (Megaparsec.Utils.keyboard.keys(keys.moveRight)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX += this._movementAcceleration;
+                }
+            }
+            properties.lastFireElapsed += context.elapsed;
+            if (Megaparsec.Utils.keyboard.keys(keys.primaryFire)) {
+                if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
+                    context.activate(new Megaparsec.Shot(agent, new Lightspeed.Vector(800)));
+                    properties.lastFireElapsed = 0;
                 }
             }
             if (!accelerationX && !accelerationY) {
@@ -1261,7 +1390,6 @@ var Megaparsec;
         Explosion.prototype.render = function (context) {
             var _this = this;
             var ctx = context.ctx;
-            ctx.save();
             ctx.globalAlpha = this._alpha;
             this._particles.forEach(function (i) {
                 var position = i.position.add(_this.position);
@@ -1270,7 +1398,6 @@ var Megaparsec;
                 ctx.arc(position.x, position.y, i.radius, 0, 2 * Math.PI);
                 ctx.fill();
             });
-            ctx.restore();
         };
         return Explosion;
     }(Lightspeed.InertialElement));
@@ -1347,7 +1474,6 @@ var Megaparsec;
             var canvasHeight = context.canvasHeight;
             var canvasWidth = context.canvasWidth;
             var ctx = context.ctx;
-            ctx.save();
             var hills = this._hills.slice(0).sort(function (i, j) { return i.depth - j.depth; });
             for (var i = 0; i < hills.length; i++) {
                 var hill = hills[i];
@@ -1362,7 +1488,6 @@ var Megaparsec;
                 ctx.lineTo(hill.start + hill.width * 1.3, canvasHeight + 10);
                 ctx.fill();
             }
-            ctx.restore();
         };
         return Hills;
     }(Lightspeed.Element));
@@ -1387,7 +1512,6 @@ var Megaparsec;
             var canvasHeight = context.canvasHeight;
             var canvasWidth = context.canvasWidth;
             var ctx = context.ctx;
-            ctx.save();
             ctx.fillStyle = this.color;
             ctx.font = this.textFontSize + "px Arial";
             var subtextHeight = this._subtext ? this.subtextFontSize : 0;
@@ -1398,7 +1522,6 @@ var Megaparsec;
                 var subtextBounds = ctx.measureText(this._subtext);
                 ctx.fillText(this._subtext, canvasWidth / 2 - subtextBounds.width / 2, canvasHeight / 2 - subtextHeight / 2 + subtextHeight / 2);
             }
-            ctx.restore();
         };
         return Message;
     }(Lightspeed.Element));
@@ -1458,7 +1581,6 @@ var Megaparsec;
         };
         StarField.prototype.render = function (context) {
             var ctx = context.ctx;
-            ctx.save();
             this._stars.forEach(function (i) {
                 if (i.twinkle) {
                     ctx.fillStyle = i.color;
@@ -1467,7 +1589,6 @@ var Megaparsec;
                     ctx.fill();
                 }
             });
-            ctx.restore();
         };
         return StarField;
     }(Lightspeed.Element));

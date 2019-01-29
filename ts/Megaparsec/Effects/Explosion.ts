@@ -51,7 +51,6 @@ namespace Megaparsec {
         render(context: Lightspeed.FrameRenderContext): void {
             var ctx = context.ctx;
 
-            ctx.save();
             ctx.globalAlpha = this._alpha;
                 
             this._particles.forEach(i => {
@@ -62,8 +61,6 @@ namespace Megaparsec {
                 ctx.arc(position.x, position.y, i.radius, 0, 2 * Math.PI);
                 ctx.fill();
             });
-
-            ctx.restore();
         }
     }
 }
