@@ -57,9 +57,10 @@ namespace Lightspeed {
             }
         }
 
-        public requestTimeout(time: number, element: Element, action: (context: FrameUpdateContext) => void) {
+        public requestTimeout(delay: number, element: Element, action: (context: FrameUpdateContext) => void) {
             this._elementTimeouts.push({
-                time: time,
+                delay: delay,
+                elapsed: 0,
                 element: element,
                 action: action
             });
@@ -68,15 +69,14 @@ namespace Lightspeed {
         private runFrame(timeStamp : DOMHighResTimeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
 
-            // Get element timeouts for this frame.
-            var currentElementTimeouts = this._elementTimeouts.filter(i => i.time <= timeStamp && !i.element.isDead)
-            this._elementTimeouts = this._elementTimeouts.filter(i => i.time > timeStamp && !i.element.isDead);
-
             if (!this._isPaused) {
                 // Update phase
                 var updateContext = new FrameUpdateContext(this, timeStamp, this._wasPaused);
 
                 this._wasPaused = false;
+
+                // Get element timeouts for this frame.
+                var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
 
                 // Remove dead elements.
                 this._elements = this._elements.filter(p => !p.isDead)
@@ -92,7 +92,9 @@ namespace Lightspeed {
 
                     var elementTimeouts = currentElementTimeouts.filter(i => i.element === element);
                     for (let j = 0; j < elementTimeouts.length; j++) {
-                        elementTimeouts[j].action.bind(elementTimeouts[j].element)(updateContext);
+                        const elementTimeout = elementTimeouts[j];
+                        elementTimeout.elapsed += updateContext.elapsed;
+                        elementTimeout.action.bind(elementTimeouts[j].element)(updateContext);
                     }
                 }
             }
@@ -112,6 +114,27 @@ namespace Lightspeed {
             }
 
             this.canvas.endRender(ctx);
+        }
+
+        // Get the element timeouts for the current frame.
+        private getCurrentElementTimeouts(updateContext: FrameUpdateContext) {
+            var currentElementTimeouts = [];
+            var nextElementTimeouts = [];
+
+            for (let i = 0; i < this._elementTimeouts.length; i++) {
+                const elementTimeout = this._elementTimeouts[i];
+
+                elementTimeout.elapsed += updateContext.elapsed;
+                if (elementTimeout.elapsed >= elementTimeout.delay) {
+                    currentElementTimeouts.push(elementTimeout);
+                } else {
+                    nextElementTimeouts.push(elementTimeout);
+                }
+            }
+
+            this._elementTimeouts = nextElementTimeouts;
+
+            return currentElementTimeouts;
         }
 
         private checkCollisions() {
@@ -137,7 +160,8 @@ namespace Lightspeed {
     }
 
     class ElementTimeout {
-        public time :number;
+        public delay: number;
+        public elapsed :number;
         public element :Element;
         public action :(context: FrameUpdateContext) => void;
     }

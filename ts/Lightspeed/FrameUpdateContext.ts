@@ -51,8 +51,9 @@ namespace Lightspeed {
             this._engine.pushElement(element);
         }
 
-        public delay(elapsed: number, action: (context: FrameUpdateContext) => void): void {
-            this._engine.requestTimeout(this._timeStamp + elapsed, this.currentElement, action);
+        public delay(time: number, action: (context: FrameUpdateContext) => void): void {
+            this._engine.requestTimeout(time, this.currentElement, action);
         }
     }
 }
+

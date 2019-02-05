@@ -308,22 +308,22 @@ var Lightspeed;
                 this.pause();
             }
         };
-        Engine.prototype.requestTimeout = function (time, element, action) {
+        Engine.prototype.requestTimeout = function (delay, element, action) {
             this._elementTimeouts.push({
-                time: time,
+                delay: delay,
+                elapsed: 0,
                 element: element,
                 action: action
             });
         };
         Engine.prototype.runFrame = function (timeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
-            // Get element timeouts for this frame.
-            var currentElementTimeouts = this._elementTimeouts.filter(function (i) { return i.time <= timeStamp && !i.element.isDead; });
-            this._elementTimeouts = this._elementTimeouts.filter(function (i) { return i.time > timeStamp && !i.element.isDead; });
             if (!this._isPaused) {
                 // Update phase
                 var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, this._wasPaused);
                 this._wasPaused = false;
+                // Get element timeouts for this frame.
+                var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
                 // Remove dead elements.
                 this._elements = this._elements.filter(function (p) { return !p.isDead; });
                 this.checkCollisions();
@@ -333,7 +333,9 @@ var Lightspeed;
                     element.update(updateContext);
                     elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
                     for (var j = 0; j < elementTimeouts.length; j++) {
-                        elementTimeouts[j].action.bind(elementTimeouts[j].element)(updateContext);
+                        var elementTimeout = elementTimeouts[j];
+                        elementTimeout.elapsed += updateContext.elapsed;
+                        elementTimeout.action.bind(elementTimeouts[j].element)(updateContext);
                     }
                 };
                 var this_1 = this, elementTimeouts;
@@ -351,6 +353,23 @@ var Lightspeed;
                 ctx.restore();
             }
             this.canvas.endRender(ctx);
+        };
+        // Get the element timeouts for the current frame.
+        Engine.prototype.getCurrentElementTimeouts = function (updateContext) {
+            var currentElementTimeouts = [];
+            var nextElementTimeouts = [];
+            for (var i = 0; i < this._elementTimeouts.length; i++) {
+                var elementTimeout = this._elementTimeouts[i];
+                elementTimeout.elapsed += updateContext.elapsed;
+                if (elementTimeout.elapsed >= elementTimeout.delay) {
+                    currentElementTimeouts.push(elementTimeout);
+                }
+                else {
+                    nextElementTimeouts.push(elementTimeout);
+                }
+            }
+            this._elementTimeouts = nextElementTimeouts;
+            return currentElementTimeouts;
         };
         Engine.prototype.checkCollisions = function () {
             var collisions = [];
@@ -452,8 +471,8 @@ var Lightspeed;
         FrameUpdateContext.prototype.activate = function (element) {
             this._engine.pushElement(element);
         };
-        FrameUpdateContext.prototype.delay = function (elapsed, action) {
-            this._engine.requestTimeout(this._timeStamp + elapsed, this.currentElement, action);
+        FrameUpdateContext.prototype.delay = function (time, action) {
+            this._engine.requestTimeout(time, this.currentElement, action);
         };
         return FrameUpdateContext;
     }());
