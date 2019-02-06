@@ -15,7 +15,7 @@ namespace Megaparsec {
             while (hillX <= canvasWidth + this._maxHillWidth) {
                 var height = Utils.random.getBetween(this._minHillHeight, this._maxHillHeight);
                 var width = Utils.random.getBetween(this._minHillWidth, this._maxHillWidth);
-                var depth = Utils.random.next(10);
+                var depth = Utils.random.next(40);
                 var velocity = -200 - depth;
     
                 var hill = {

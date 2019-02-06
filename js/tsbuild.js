@@ -639,6 +639,18 @@ var Lightspeed;
         Vector.prototype.dot = function (other) {
             return this.x * other.x + this.y * other.y;
         };
+        Vector.prototype.with = function (changeX, changeY) {
+            return new Vector(changeX(this.x), changeY(this.y));
+        };
+        Vector.prototype.withX = function (change) {
+            return new Vector(change(this.x), this.y);
+        };
+        Vector.prototype.withY = function (change) {
+            return new Vector(this.x, change(this.y));
+        };
+        Vector.prototype.angleTo = function (other) {
+            return Math.atan2(other.y - this.y, other.x - this.x);
+        };
         Vector.fromPolar = function (argument, magnitude) {
             return new Vector(Math.cos(argument) * magnitude, Math.sin(argument) * magnitude);
         };
@@ -669,15 +681,12 @@ var Config = {
         player: {
             image: './img/player.png'
         },
-        playerShot: './img/player.shot.png',
         enemy1: {
             waveMode: 'OffsetWaveMode',
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
-                { name: 'Swoop' },
-                { name: 'Bounce' },
-                { name: 'Loop' }
+                { name: 'Wobble' },
             ],
             images: [
                 './img/enemy1.blue.png',
@@ -692,7 +701,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
-                { name: 'Loop' }
+                { name: 'Wobble' }
             ],
             images: [
                 './img/enemy2.blue.png',
@@ -703,7 +712,7 @@ var Config = {
             ]
         },
         enemy3: {
-            waveMode: 'OffsetWaveMode',
+            waveMode: 'SerialWaveMode',
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
@@ -820,6 +829,8 @@ var Megaparsec;
     }(Lightspeed.Engine));
     Megaparsec.Game = Game;
 })(Megaparsec || (Megaparsec = {}));
+var Vector = Lightspeed.Vector;
+var Box = Lightspeed.Box;
 var Lightspeed;
 (function (Lightspeed) {
     var Utils;
@@ -933,7 +944,6 @@ var Megaparsec;
     Megaparsec.Color = Color;
 })(Megaparsec || (Megaparsec = {}));
 /// <reference path="../../LightSpeed/InertialElement.ts" />
-var Box = Lightspeed.Box;
 var Megaparsec;
 (function (Megaparsec) {
     var GameObject = /** @class */ (function (_super) {
@@ -1177,6 +1187,77 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var Controller = /** @class */ (function () {
+        function Controller() {
+        }
+        Controller.prototype.init = function (agent, constraintBox) {
+            agent.controllerProperties.constrain = true;
+            // optionally overloaded by extending classes to set given agents initial position.
+        };
+        Controller.prototype.update = function (agent, context) {
+            this.updateAgent(agent, context);
+        };
+        Controller.prototype.updateAgent = function (agent, context) {
+            // optionally overloaded by extending classes to update the given agent.
+        };
+        return Controller;
+    }());
+    Megaparsec.Controller = Controller;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="Controller.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var Bounce = /** @class */ (function (_super) {
+        __extends(Bounce, _super);
+        function Bounce() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._bounceDistance = 100;
+            _this._bounceJolt = 400;
+            return _this;
+        }
+        Bounce.prototype.init = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            properties.constrain = false;
+            properties.phase = 0; // swooping
+            var zoneLeft = constraintBox.width * 0.7;
+            var zoneWidth = constraintBox.width - zoneLeft;
+            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            var zoneHeight = (constraintBox.height - this._bounceDistance) * 0.7;
+            var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
+            properties.initialY = agent.position.y;
+            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.initialVelocity = new Vector(-150, 400);
+            properties.targetVelocity = new Vector(-300, 0);
+            agent.velocity = properties.initialVelocity;
+        };
+        Bounce.prototype.updateAgent = function (agent, context) {
+            var _this = this;
+            var properties = agent.controllerProperties;
+            if (properties.phase === 0) // swooping
+             {
+                if (agent.position.y > (properties.targetY + this._bounceDistance)) {
+                    agent.velocity = properties.targetVelocity.with(function (x) { return x - _this._bounceJolt; }, function (y) { return -_this._bounceJolt; });
+                    properties.positionAfterPhase0 = agent.position;
+                    properties.velocityAfterPhase0 = agent.velocity;
+                    properties.phase = 1;
+                }
+            }
+            if (properties.phase === 1) // bouncing
+             {
+                var percentToTarget = (agent.position.y - properties.targetY) / (properties.positionAfterPhase0.y - properties.targetY);
+                agent.velocity = new Vector(properties.targetVelocity.x + (-this._bounceJolt * percentToTarget), percentToTarget * properties.velocityAfterPhase0.y);
+                if (Math.abs(agent.position.y - properties.targetY) < 1) {
+                    properties.constrain = true;
+                    properties.phase = 2; // cruising
+                }
+            }
+        };
+        return Bounce;
+    }(Megaparsec.Controller));
+    Megaparsec.Bounce = Bounce;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
     var Constrainer = /** @class */ (function () {
         function Constrainer(horizontalConstraintTopology, verticalConstraintTopology) {
             this._horizontalConstraintTopology = horizontalConstraintTopology;
@@ -1275,25 +1356,6 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
-    var Controller = /** @class */ (function () {
-        function Controller() {
-        }
-        Controller.prototype.init = function (agent, constraintBox) {
-            agent.controllerProperties.constrain = true;
-            // optionally overloaded by extending classes to set given agents initial position.
-        };
-        Controller.prototype.update = function (agent, context) {
-            this.updateAgent(agent, context);
-        };
-        Controller.prototype.updateAgent = function (agent, context) {
-            // optionally overloaded by extending classes to update the given agent.
-        };
-        return Controller;
-    }());
-    Megaparsec.Controller = Controller;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
     var Swoop = /** @class */ (function (_super) {
         __extends(Swoop, _super);
         function Swoop() {
@@ -1311,7 +1373,7 @@ var Megaparsec;
             properties.initialY = agent.position.y;
             properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
             properties.initialVelocity = new Lightspeed.Vector(0, 400);
-            properties.targetVelocity = new Lightspeed.Vector(-200, 0);
+            properties.targetVelocity = new Lightspeed.Vector(-300, 0);
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
         };
         Swoop.prototype.updateAgent = function (agent, context) {
@@ -1330,7 +1392,128 @@ var Megaparsec;
     }(Megaparsec.Controller));
     Megaparsec.Swoop = Swoop;
 })(Megaparsec || (Megaparsec = {}));
+/// <reference path="Controller.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var Loop = /** @class */ (function (_super) {
+        __extends(Loop, _super);
+        function Loop() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._loopRadius = 75;
+            return _this;
+        }
+        Loop.prototype.init = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            properties.constrain = false;
+            properties.phase = 0; // swooping
+            var zoneLeft = constraintBox.width * 0.7;
+            var zoneWidth = constraintBox.width - zoneLeft;
+            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            var zoneHeight = (constraintBox.height - this._loopRadius) * 0.7;
+            var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
+            properties.initialY = agent.position.y;
+            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.initialVelocity = new Vector(-150, 400);
+            properties.targetVelocity = new Vector(-300, 0);
+            agent.velocity = properties.initialVelocity;
+        };
+        Loop.prototype.updateAgent = function (agent, context) {
+            var _this = this;
+            var properties = agent.controllerProperties;
+            if (properties.phase === 0) // swooping
+             {
+                if (agent.position.y > properties.targetY) {
+                    properties.loopCenter = agent.position.withX(function (x) { return x + _this._loopRadius; });
+                    properties.phase = 1;
+                }
+            }
+            if (properties.phase === 1) // looping
+             {
+                var velocity = agent.velocity.magnitude;
+                var angleToLoopCenter = agent.position.angleTo(properties.loopCenter);
+                var tangentAngle = angleToLoopCenter + Math.PI * 0.5;
+                agent.velocity = Vector.fromPolar(tangentAngle, velocity);
+                if (agent.velocity.x < 0 && Math.abs(agent.velocity.y) < 20) {
+                    agent.velocity = agent.velocity.withY(function (y) { return 0; });
+                    properties.phase = 2; // Cruising
+                    properties.constrain = true;
+                }
+            }
+        };
+        return Loop;
+    }(Megaparsec.Controller));
+    Megaparsec.Loop = Loop;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Wobble = /** @class */ (function (_super) {
+        __extends(Wobble, _super);
+        function Wobble() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._amplitude = 50;
+            return _this;
+        }
+        Wobble.prototype.init = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            properties.constrain = false;
+            properties.phase = 0; // swooping
+            var zoneLeft = constraintBox.width * 0.7;
+            var zoneWidth = constraintBox.width - zoneLeft;
+            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            var zoneHeight = constraintBox.height * 0.7;
+            var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
+            properties.initialY = agent.position.y;
+            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.initialVelocity = new Vector(0, 400);
+            properties.targetVelocity = new Vector(-300, 0);
+            agent.velocity = new Vector(0, properties.initialVelocity.y);
+        };
+        Wobble.prototype.updateAgent = function (agent, context) {
+            var properties = agent.controllerProperties;
+            if (properties.phase === 0) { // swooping
+                var percentToTarget = (agent.position.y - properties.initialY) / ((properties.targetY + this._amplitude) - properties.initialY);
+                agent.velocity = agent.velocity.withX(function (x) { return percentToTarget * properties.targetVelocity.x; });
+                if (agent.position.y > properties.targetY + this._amplitude) {
+                    agent.acceleration = new Vector(0, -this._amplitude);
+                    properties.amplitudeFactor = 1;
+                    properties.phase = 1;
+                }
+            }
+            else if (properties.phase === 1) { // wobble up
+                if (agent.position.y < properties.targetY) {
+                    agent.velocity = agent.velocity.withY(function (y) { return y * 0.75; });
+                    agent.acceleration = new Vector(0, this._amplitude);
+                    properties.phase = 2;
+                    if (Math.abs(agent.velocity.y) < 150) {
+                        agent.velocity = agent.velocity.withY(function (y) { return 0; });
+                        agent.acceleration = new Vector();
+                        properties.phase = 3; // cruising
+                        properties.constrain = true;
+                    }
+                }
+            }
+            else if (properties.phase === 2) { // wobble down
+                if (agent.position.y > properties.targetY) {
+                    agent.velocity = agent.velocity.withY(function (y) { return y * 0.75; });
+                    agent.acceleration = new Vector(0, -this._amplitude);
+                    properties.phase = 1;
+                    if (Math.abs(agent.velocity.y) < 150) {
+                        agent.velocity = agent.velocity.withY(function (y) { return 0; });
+                        agent.acceleration = new Vector();
+                        properties.phase = 3; // cruising
+                        properties.constrain = true;
+                    }
+                }
+            }
+        };
+        return Wobble;
+    }(Megaparsec.Controller));
+    Megaparsec.Wobble = Wobble;
+})(Megaparsec || (Megaparsec = {}));
 /// <reference path="Swoop.ts" />
+/// <reference path="Bounce.ts" />
+/// <reference path="Loop.ts" />
+/// <reference path="Wobble.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var ControllerFactory = /** @class */ (function () {
@@ -1341,8 +1524,9 @@ var Megaparsec;
         ControllerFactory.prototype.registerControllers = function () {
             this._controllerTypesByName['Player'] = Megaparsec.Player;
             this._controllerTypesByName['Swoop'] = Megaparsec.Swoop;
-            this._controllerTypesByName['Bounce'] = Megaparsec.Swoop;
-            this._controllerTypesByName['Loop'] = Megaparsec.Swoop;
+            this._controllerTypesByName['Bounce'] = Megaparsec.Bounce;
+            this._controllerTypesByName['Loop'] = Megaparsec.Loop;
+            this._controllerTypesByName['Wobble'] = Megaparsec.Wobble;
             this._controllerTypesByName['Target'] = Megaparsec.Swoop;
         };
         Object.defineProperty(ControllerFactory, "current", {
@@ -1530,7 +1714,7 @@ var Megaparsec;
             while (hillX <= canvasWidth + this._maxHillWidth) {
                 var height = Megaparsec.Utils.random.getBetween(this._minHillHeight, this._maxHillHeight);
                 var width = Megaparsec.Utils.random.getBetween(this._minHillWidth, this._maxHillWidth);
-                var depth = Megaparsec.Utils.random.next(10);
+                var depth = Megaparsec.Utils.random.next(40);
                 var velocity = -200 - depth;
                 var hill = {
                     start: hillX,

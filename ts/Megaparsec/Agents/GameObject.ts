@@ -1,7 +1,5 @@
 /// <reference path="../../LightSpeed/InertialElement.ts" />
 
-import Box = Lightspeed.Box;
-
 namespace Megaparsec {
     export class GameObject extends Lightspeed.InertialElement {
         protected _box: Lightspeed.Box;

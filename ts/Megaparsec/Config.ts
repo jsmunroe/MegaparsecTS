@@ -21,7 +21,6 @@ var Config = {
         player: { 
             image: './img/player.png' 
         },
-        playerShot: './img/player.shot.png',
         enemy1: {
             waveMode: 'OffsetWaveMode',
             horizontalConstraintTopology: 'Wrap', 
@@ -44,7 +43,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [
-                { name:'Loop' }
+                { name:'Wobble' }
             ],
             images: [
                 './img/enemy2.blue.png',
@@ -55,7 +54,7 @@ var Config = {
             ]
         },
         enemy3: {
-            waveMode: 'OffsetWaveMode',
+            waveMode: 'SerialWaveMode',
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [

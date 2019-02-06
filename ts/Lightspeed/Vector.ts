@@ -40,6 +40,22 @@ namespace Lightspeed {
             return this.x * other.x + this.y * other.y;
         }
 
+        public with(changeX: (x: number) => number, changeY: (y: number) => number) :Vector {
+            return new Vector(changeX(this.x), changeY(this.y));
+        }
+
+        public withX(change: (x: number) => number) :Vector {
+            return new Vector(change(this.x), this.y);
+        }
+
+        public withY(change: (y: number) => number) :Vector {
+            return new Vector(this.x, change(this.y));
+        }
+
+        public angleTo(other: Vector) :number {
+            return Math.atan2(other.y - this.y, other.x - this.x);
+        }
+
         public static fromPolar(argument: number, magnitude: number) {
             return new Vector(
                 Math.cos(argument) * magnitude,

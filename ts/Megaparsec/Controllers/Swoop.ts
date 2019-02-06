@@ -21,7 +21,7 @@ namespace Megaparsec {
             properties.targetY = zoneTop + Utils.random.next(zoneHeight);
 
             properties.initialVelocity = new Lightspeed.Vector(0, 400);
-            properties.targetVelocity = new Lightspeed.Vector(-200, 0);
+            properties.targetVelocity = new Lightspeed.Vector(-300, 0);
 
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
         }
