@@ -43,7 +43,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [
-                { name:'Wobble' }
+                { name:'Target' }
             ],
             images: [
                 './img/enemy2.blue.png',
@@ -58,7 +58,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [
-                { name:'Target' }
+                { name:'Wobble' }
             ],
             images: [
                 './img/enemy3.blue.png',

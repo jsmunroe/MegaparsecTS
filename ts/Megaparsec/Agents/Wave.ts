@@ -44,7 +44,6 @@ namespace Megaparsec {
 
             if (!this._agents.length) {
                 this.kill();
-                Game.messenger.publish(new Megaparsec.WaveKilledMessage(this))
                 return;
             }
 

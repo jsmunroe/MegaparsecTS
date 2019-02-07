@@ -25,12 +25,18 @@ namespace Megaparsec {
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
             
-            this.loadNextWave(config);
-            Game.messenger.subscribe(this, WaveKilledMessage.messageName, i => this.loadNextWave(config));
+            this.loadLevel(config);
         }
 
-        loadNextWave(config: any) {
-            this.pushElement(new Wave(config.agents.enemy1));
+        loadLevel(config: any) {
+            var level = LevelBuilder.start()
+                .pushWave('enemy1', 1)
+                .pushWave('enemy2', 1)
+                .pushWave('enemy3', 1)
+                .pushWave('enemy2', 2)
+                .build();
+
+            this.pushElement(level);
         }
 
         pause() {

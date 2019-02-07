@@ -686,7 +686,9 @@ var Config = {
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
-                { name: 'Wobble' },
+                { name: 'Swoop' },
+                { name: 'Bounce' },
+                { name: 'Loop' }
             ],
             images: [
                 './img/enemy1.blue.png',
@@ -701,7 +703,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
-                { name: 'Wobble' }
+                { name: 'Target' }
             ],
             images: [
                 './img/enemy2.blue.png',
@@ -716,7 +718,7 @@ var Config = {
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
-                { name: 'Target' }
+                { name: 'Wobble' }
             ],
             images: [
                 './img/enemy3.blue.png',
@@ -791,7 +793,6 @@ var Megaparsec;
             configurable: true
         });
         Game.prototype.load = function (config) {
-            var _this = this;
             this.clear();
             this.pushElement(new Megaparsec.Background());
             this.pushElement(new Megaparsec.StarField(200));
@@ -799,11 +800,16 @@ var Megaparsec;
             this._player = new Megaparsec.Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
-            this.loadNextWave(config);
-            Game.messenger.subscribe(this, Megaparsec.WaveKilledMessage.messageName, function (i) { return _this.loadNextWave(config); });
+            this.loadLevel(config);
         };
-        Game.prototype.loadNextWave = function (config) {
-            this.pushElement(new Megaparsec.Wave(config.agents.enemy1));
+        Game.prototype.loadLevel = function (config) {
+            var level = Megaparsec.LevelBuilder.start()
+                .pushWave('enemy1', 1)
+                .pushWave('enemy2', 1)
+                .pushWave('enemy3', 1)
+                .pushWave('enemy2', 2)
+                .build();
+            this.pushElement(level);
         };
         Game.prototype.pause = function () {
             this.pushElement(this._pauseMessage);
@@ -828,6 +834,53 @@ var Megaparsec;
         return Game;
     }(Lightspeed.Engine));
     Megaparsec.Game = Game;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Level = /** @class */ (function (_super) {
+        __extends(Level, _super);
+        function Level(waves) {
+            var _this = _super.call(this) || this;
+            _this._waves = [];
+            _this._waves = waves;
+            return _this;
+        }
+        Level.prototype.update = function (context) {
+            if (!this._currentWave || this._currentWave.isDead) {
+                if (!this._waves.length) {
+                    this.kill();
+                    return;
+                }
+                var nextWave = this._waves.shift();
+                context.activate(nextWave);
+                this._currentWave = nextWave;
+            }
+        };
+        return Level;
+    }(Lightspeed.Element));
+    Megaparsec.Level = Level;
+    var LevelBuilder = /** @class */ (function () {
+        function LevelBuilder() {
+            this._waves = [];
+        }
+        LevelBuilder.start = function () {
+            return new LevelBuilder();
+        };
+        LevelBuilder.prototype.pushWave = function (enemyName, difficulty) {
+            if (!Config.agents[enemyName]) {
+                return this;
+            }
+            var enemyConfig = Config.agents[enemyName];
+            var wave = new Megaparsec.Wave(enemyConfig);
+            this._waves.push(wave);
+            return this;
+        };
+        LevelBuilder.prototype.build = function () {
+            return new Level(this._waves);
+        };
+        return LevelBuilder;
+    }());
+    Megaparsec.LevelBuilder = LevelBuilder;
 })(Megaparsec || (Megaparsec = {}));
 var Vector = Lightspeed.Vector;
 var Box = Lightspeed.Box;
@@ -1127,7 +1180,6 @@ var Megaparsec;
             this._activeAgents = this._activeAgents.filter(function (i) { return !i.isDead; });
             if (!this._agents.length) {
                 this.kill();
-                Megaparsec.Game.messenger.publish(new Megaparsec.WaveKilledMessage(this));
                 return;
             }
             if (this._waveMode == WaveMode.OffsetWaveMode) {
@@ -1662,24 +1714,6 @@ var Megaparsec;
         return Explosion;
     }(Lightspeed.InertialElement));
     Megaparsec.Explosion = Explosion;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var WaveKilledMessage = /** @class */ (function (_super) {
-        __extends(WaveKilledMessage, _super);
-        function WaveKilledMessage(wave) {
-            var _this = _super.call(this, WaveKilledMessage.messageName) || this;
-            _this.wave = wave;
-            return _this;
-        }
-        Object.defineProperty(WaveKilledMessage, "messageName", {
-            get: function () { return "WaveKilledMessage"; },
-            enumerable: true,
-            configurable: true
-        });
-        return WaveKilledMessage;
-    }(Lightspeed.Utils.Message));
-    Megaparsec.WaveKilledMessage = WaveKilledMessage;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
