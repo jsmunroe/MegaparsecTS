@@ -32,6 +32,40 @@ namespace Lightspeed {
             }
         }
 
+        public findElements(predicate?: (element: Element) => boolean) {
+            if (!predicate) {
+                return this._elements;
+            }
+
+            return this._elements.filter(predicate);
+        }
+
+        public findFirstElement(predicate?: (element: Element) => boolean) {
+            return this.findElements(predicate)[0];
+        }
+
+        public findClosestElement(position: Vector, predicate?: (element: Element) => boolean) {
+            var elements: InertialElement[] = this.findElements(predicate).filter(i => i instanceof InertialElement).map(i => <InertialElement>i);
+
+            if (!elements.length) {
+                return null;
+            }
+
+            var closestElement = elements[0];
+            var closestDistance = closestElement.position.distanceTo(position);
+            for (let i = 0; i < elements.length; i++) {
+                const element = elements[i];
+                
+                var distance = element.position.distanceTo(position);
+                if (distance < closestDistance) {
+                    closestElement = element;
+                    closestDistance = distance;
+                }
+            }
+
+            return closestElement;
+        }
+
         public get canvas() {
             return this._canvas;
         }

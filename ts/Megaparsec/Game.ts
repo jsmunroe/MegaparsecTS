@@ -30,7 +30,7 @@ namespace Megaparsec {
 
         loadLevel(config: any) {
             var level = LevelBuilder.start()
-                .pushWave('enemy1', 1)
+                //.pushWave('enemy1', 1)
                 .pushWave('enemy2', 1)
                 .pushWave('enemy3', 1)
                 .pushWave('enemy2', 2)

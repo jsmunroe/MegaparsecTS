@@ -279,6 +279,32 @@ var Lightspeed;
                 this._elements.splice(index, 1);
             }
         };
+        Engine.prototype.findElements = function (predicate) {
+            if (!predicate) {
+                return this._elements;
+            }
+            return this._elements.filter(predicate);
+        };
+        Engine.prototype.findFirstElement = function (predicate) {
+            return this.findElements(predicate)[0];
+        };
+        Engine.prototype.findClosestElement = function (position, predicate) {
+            var elements = this.findElements(predicate).filter(function (i) { return i instanceof Lightspeed.InertialElement; }).map(function (i) { return i; });
+            if (!elements.length) {
+                return null;
+            }
+            var closestElement = elements[0];
+            var closestDistance = closestElement.position.distanceTo(position);
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i];
+                var distance = element.position.distanceTo(position);
+                if (distance < closestDistance) {
+                    closestElement = element;
+                    closestDistance = distance;
+                }
+            }
+            return closestElement;
+        };
         Object.defineProperty(Engine.prototype, "canvas", {
             get: function () {
                 return this._canvas;
@@ -471,6 +497,12 @@ var Lightspeed;
         FrameUpdateContext.prototype.activate = function (element) {
             this._engine.pushElement(element);
         };
+        FrameUpdateContext.prototype.findFirst = function (predicate) {
+            return this._engine.findFirstElement(predicate);
+        };
+        FrameUpdateContext.prototype.findClosest = function (position, predicate) {
+            return this._engine.findClosestElement(position, predicate);
+        };
         FrameUpdateContext.prototype.delay = function (time, action) {
             this._engine.requestTimeout(time, this.currentElement, action);
         };
@@ -651,6 +683,9 @@ var Lightspeed;
         Vector.prototype.angleTo = function (other) {
             return Math.atan2(other.y - this.y, other.x - this.x);
         };
+        Vector.prototype.distanceTo = function (other) {
+            return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
+        };
         Vector.fromPolar = function (argument, magnitude) {
             return new Vector(Math.cos(argument) * magnitude, Math.sin(argument) * magnitude);
         };
@@ -699,7 +734,7 @@ var Config = {
             ]
         },
         enemy2: {
-            waveMode: 'OffsetWaveMode',
+            waveMode: 'SerialWaveMode',
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
@@ -714,7 +749,7 @@ var Config = {
             ]
         },
         enemy3: {
-            waveMode: 'SerialWaveMode',
+            waveMode: 'OffsetWaveMode',
             horizontalConstraintTopology: 'Wrap',
             virticalConstraintTopology: 'Block',
             controllers: [
@@ -804,7 +839,7 @@ var Megaparsec;
         };
         Game.prototype.loadLevel = function (config) {
             var level = Megaparsec.LevelBuilder.start()
-                .pushWave('enemy1', 1)
+                //.pushWave('enemy1', 1)
                 .pushWave('enemy2', 1)
                 .pushWave('enemy3', 1)
                 .pushWave('enemy2', 2)
@@ -1070,6 +1105,9 @@ var Megaparsec;
             this._sprite.draw(context.ctx, this.position);
         };
         Agent.prototype.collide = function (context) {
+            if (context.otherElement instanceof Megaparsec.Shot) {
+                return; // Let Shot handle the Agent destruction.
+            }
             this.explode(context);
         };
         Agent.prototype.explode = function (context) {
@@ -1110,7 +1148,7 @@ var Megaparsec;
     var Shot = /** @class */ (function (_super) {
         __extends(Shot, _super);
         function Shot(origin, velocity, acceleration) {
-            var _this = _super.call(this, 20, 5, Megaparsec.Constrainer.killOutOfBounds) || this;
+            var _this = _super.call(this, 20, 2.5, Megaparsec.Constrainer.killOutOfBounds) || this;
             _this._passesThroughOnHit = false;
             _this._origin = origin;
             _this._color = 'CornFlowerBlue';
@@ -1562,10 +1600,79 @@ var Megaparsec;
     }(Megaparsec.Controller));
     Megaparsec.Wobble = Wobble;
 })(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Target = /** @class */ (function (_super) {
+        __extends(Target, _super);
+        function Target() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._lateralVelocity = 50;
+            _this._forwardVelocity = 200;
+            _this._forwardStep = 50;
+            _this._shotSpeed = 1200;
+            _this._shotIteration = 500;
+            return _this;
+        }
+        Target.prototype.init = function (agent, constraintBox) {
+            var properties = agent.controllerProperties;
+            properties.constrain = false;
+            properties.phase = 0; // moving forward
+            properties.lastFireElapsed = 0;
+            properties.targetX = constraintBox.width - 50;
+            var zoneTop = constraintBox.height * 0.15;
+            var zoneHeight = constraintBox.height - zoneTop * 2;
+            agent.position = new Vector(constraintBox.width + 100, zoneTop + Megaparsec.Utils.random.next(zoneHeight));
+            agent.velocity = new Vector(-200, 0);
+        };
+        Target.prototype.updateAgent = function (agent, context) {
+            var properties = agent.controllerProperties;
+            if (properties.phase === 0) { // moving forward
+                if (agent.position.x < properties.targetX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return 0; });
+                    properties.phase = 1; // targetting
+                    return;
+                }
+            }
+            if (properties.phase === 1) { // targetting 
+                var target = context.findFirst(function (i) { return i instanceof Megaparsec.Player; });
+                if (!target || target.isDead) {
+                    agent.velocity = new Vector();
+                    return;
+                }
+                properties.lastFireElapsed += context.elapsed;
+                if (Math.abs(agent.position.y - target.position.y) < 5 ||
+                    agent.position.y <= target.position.y && agent.velocity.y < 0 ||
+                    agent.position.y >= target.position.y && agent.velocity.y > 0) {
+                    if (properties.lastFireElapsed > this._shotIteration) {
+                        context.activate(new Megaparsec.Shot(agent, new Lightspeed.Vector(-this._shotSpeed)));
+                        properties.lastFireElapsed = 0;
+                        agent.velocity = new Vector(-this._forwardVelocity, 0);
+                        properties.targetX = agent.position.x - this._forwardStep;
+                        properties.phase = 0; // moving forward
+                        return;
+                    }
+                    agent.velocity = new Vector();
+                    return;
+                }
+                if (agent.position.y < target.position.y) {
+                    agent.velocity = new Vector(0, this._lateralVelocity);
+                    return;
+                }
+                if (agent.position.y > target.position.y) {
+                    agent.velocity = new Vector(0, -this._lateralVelocity);
+                    return;
+                }
+            }
+        };
+        return Target;
+    }(Megaparsec.Controller));
+    Megaparsec.Target = Target;
+})(Megaparsec || (Megaparsec = {}));
 /// <reference path="Swoop.ts" />
 /// <reference path="Bounce.ts" />
 /// <reference path="Loop.ts" />
 /// <reference path="Wobble.ts" />
+/// <reference path="Target.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var ControllerFactory = /** @class */ (function () {
@@ -1579,7 +1686,7 @@ var Megaparsec;
             this._controllerTypesByName['Bounce'] = Megaparsec.Bounce;
             this._controllerTypesByName['Loop'] = Megaparsec.Loop;
             this._controllerTypesByName['Wobble'] = Megaparsec.Wobble;
-            this._controllerTypesByName['Target'] = Megaparsec.Swoop;
+            this._controllerTypesByName['Target'] = Megaparsec.Target;
         };
         Object.defineProperty(ControllerFactory, "current", {
             get: function () {

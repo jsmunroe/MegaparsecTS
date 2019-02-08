@@ -56,6 +56,10 @@ namespace Lightspeed {
             return Math.atan2(other.y - this.y, other.x - this.x);
         }
 
+        public distanceTo(other: Vector) :number {
+            return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
+        }
+
         public static fromPolar(argument: number, magnitude: number) {
             return new Vector(
                 Math.cos(argument) * magnitude,

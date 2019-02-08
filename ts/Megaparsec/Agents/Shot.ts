@@ -7,7 +7,7 @@ namespace Megaparsec {
         private _passesThroughOnHit: boolean = false;
 
         constructor(origin: GameObject, velocity: Lightspeed.Vector, acceleration?: Lightspeed.Vector) {
-            super(20, 5, Constrainer.killOutOfBounds);
+            super(20, 2.5, Constrainer.killOutOfBounds);
 
             this._origin = origin;
 

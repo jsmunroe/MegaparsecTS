@@ -30,6 +30,10 @@ namespace Megaparsec {
         }
 
         collide(context: Lightspeed.ElementCollisionContext): void {
+            if (context.otherElement instanceof Shot) {
+                return; // Let Shot handle the Agent destruction.
+            }
+
             this.explode(context);
         }
 

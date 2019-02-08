@@ -39,7 +39,7 @@ var Config = {
             ] 
         }, 
         enemy2: {
-            waveMode: 'OffsetWaveMode',
+            waveMode: 'SerialWaveMode',
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [
@@ -54,7 +54,7 @@ var Config = {
             ]
         },
         enemy3: {
-            waveMode: 'SerialWaveMode',
+            waveMode: 'OffsetWaveMode',
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
             controllers: [

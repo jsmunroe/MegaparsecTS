@@ -51,6 +51,14 @@ namespace Lightspeed {
             this._engine.pushElement(element);
         }
 
+        public findFirst(predicate: (element: Element) => boolean) : Element {
+            return this._engine.findFirstElement(predicate);
+        }
+
+        public findClosest(position: Vector, predicate: (element: Element) => boolean) : Element {
+            return this._engine.findClosestElement(position, predicate);
+        }
+
         public delay(time: number, action: (context: FrameUpdateContext) => void): void {
             this._engine.requestTimeout(time, this.currentElement, action);
         }
