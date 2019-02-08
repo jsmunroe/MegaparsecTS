@@ -15,15 +15,15 @@ namespace Lightspeed.Utils {
             this._subscriptions = this._subscriptions.filter(i => i.source === source);
         }
 
-        publish(message: Message) {
-            this._subscriptions.filter(i => i.messageName === message.name).forEach(i => i.callback.bind(i.source).call(message))
+        publish(messageName: string, payload?: any) {
+            this._subscriptions.filter(i => i.messageName === messageName).forEach(i => i.callback.bind(i.source).call(new Message(messageName, payload)))
         }
     }
 
     export class Message {
         private _name;
 
-        constructor(name: string) {
+        constructor(name: string, payload?: any) {
             this._name = name;
         }
 

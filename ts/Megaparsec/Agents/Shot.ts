@@ -35,7 +35,7 @@ namespace Megaparsec {
             ctx.fillRect(box.left, box.top, box.width, box.height);
         }
 
-        collide(context: Lightspeed.ElementCollisionContext): void {
+        onCollide(context: Lightspeed.ElementCollisionContext): void {
             if (context.otherElement instanceof Agent && context.otherElement != this._origin) {            
                 var agent :Agent = context.otherElement as Agent
                 agent.explode(context);

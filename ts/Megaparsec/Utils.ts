@@ -2,25 +2,20 @@
 /// <reference path="../Lightspeed/Utils/Random.ts" />
 
 namespace Megaparsec {
-    export class Utils {
-        public static keyboard : Lightspeed.Utils.Keyboard = Lightspeed.Utils.Keyboard.Current;
-        public static random: Lightspeed.Utils.Random = Lightspeed.Utils.Random.Current;
-    } 
-
     export class Color {
         static getRandomColor() {
             var letters = '89ABCDEF';
             var color = '#';
 
             for (var i = 0; i < 6; i++) {
-                color += letters[Utils.random.nextInt(letters.length)];
+                color += letters[Random.Current.nextInt(letters.length)];
             }
 
             return color;
         }
 
         static getRandomShade(base: string, minShade: number, maxShade: number) :string {
-            return Color.lum(base, Utils.random.getBetween(minShade, maxShade));
+            return Color.lum(base, Random.Current.getBetween(minShade, maxShade));
         }
 
         static lum(color: string, percent: number) :string {   

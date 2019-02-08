@@ -19,14 +19,14 @@ namespace Megaparsec {
 
         init(context: Lightspeed.ElementInitContext) : void {
             for (var i = 0; i < this._particleCount; i++) {
-                var argument = Utils.random.next(Math.PI * 2);
-                var magnitude = Utils.random.next(this._particleMaxMagnitude);
+                var argument = Random.Current.next(Math.PI * 2);
+                var magnitude = Random.Current.next(this._particleMaxMagnitude);
 
                 this._particles.push({
                     position: new Lightspeed.Vector(0, 0),
                     velocity: Lightspeed.Vector.fromPolar(argument, magnitude),
                     color: Color.getRandomColor(),
-                    radius: Utils.random.next(2)
+                    radius: Random.Current.next(2)
                 });
             }
         }

@@ -14,6 +14,12 @@ namespace Megaparsec {
             return this._messenger;
         }
 
+        constructor() {
+            super();
+
+            Game.messenger.subscribe(this, GameMessages.playerKilled, this.onPlayerKilled);
+        }
+
         load(config: any) {
             this.clear();
             
@@ -21,11 +27,15 @@ namespace Megaparsec {
             this.pushElement(new StarField(200));
             this.pushElement(new Hills());
 
+            this.loadPlayer();
+            
+            this.loadLevel(config);
+        }
+
+        loadPlayer() {
             this._player = new Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
-            
-            this.loadLevel(config);
         }
 
         loadLevel(config: any) {
@@ -51,12 +61,16 @@ namespace Megaparsec {
             super.unpause();
         }
 
+        private onPlayerKilled(message: Lightspeed.Utils.Message) {
+            this.loadPlayer();
+        }
+
         static run() :void {
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
 
-            Utils.keyboard.keys(Config.keys.pause, () => game.togglePause());
+            Keyboard.Current.keys(Config.keys.pause, () => game.togglePause());
 
             window.addEventListener('blur', () => {
                 if (!game.isPaused) {
@@ -64,5 +78,9 @@ namespace Megaparsec {
                 }
             });
         }
+    }
+
+    export class GameMessages {
+        public static readonly playerKilled: string = 'playerKilled';
     }
 }

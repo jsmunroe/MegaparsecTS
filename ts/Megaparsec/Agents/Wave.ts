@@ -29,7 +29,7 @@ namespace Megaparsec {
             var constrainer = new Constrainer(horizontalConstraintTopology, verticalConstraintTopology);
 
             this._config.images.forEach(i => {
-                var controller: Controller = Utils.random.pick(controllers);
+                var controller: Controller = Random.Current.pick(controllers);
                 
                 var agent: Agent = new Enemy(controller, constrainer, i);
 

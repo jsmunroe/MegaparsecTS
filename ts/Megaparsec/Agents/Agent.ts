@@ -29,7 +29,7 @@ namespace Megaparsec {
             this._sprite.draw(context.ctx, this.position);
         }
 
-        collide(context: Lightspeed.ElementCollisionContext): void {
+        onCollide(context: Lightspeed.ElementCollisionContext): void {
             if (context.otherElement instanceof Shot) {
                 return; // Let Shot handle the Agent destruction.
             }

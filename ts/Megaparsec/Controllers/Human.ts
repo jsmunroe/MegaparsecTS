@@ -15,32 +15,32 @@ namespace Megaparsec {
             var accelerationX: number = 0;
             var accelerationY: number = 0;
 
-            if (Utils.keyboard.keys(keys.moveUp)) {
+            if (Keyboard.Current.keys(keys.moveUp)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationY = -this._movementAcceleration;
                 } 
             }
 
-            if (Utils.keyboard.keys(keys.moveDown)) {
+            if (Keyboard.Current.keys(keys.moveDown)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationY += this._movementAcceleration;
                 }
             }
 
-            if (Utils.keyboard.keys(keys.moveLeft)) {
+            if (Keyboard.Current.keys(keys.moveLeft)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX = -this._movementAcceleration;
                 }
             }
 
-            if (Utils.keyboard.keys(keys.moveRight)) {
+            if (Keyboard.Current.keys(keys.moveRight)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX += this._movementAcceleration;
                 }
             }
 
             properties.lastFireElapsed += context.elapsed;
-            if (Utils.keyboard.keys(keys.primaryFire)) {
+            if (Keyboard.Current.keys(keys.primaryFire)) {
                 if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
                     context.activate(new Shot(agent, new Lightspeed.Vector(800)));
                     properties.lastFireElapsed = 0;

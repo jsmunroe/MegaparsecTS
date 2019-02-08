@@ -8,7 +8,6 @@ namespace Megaparsec {
         private _shotSpeed: number = 1200;
         private _shotIteration: number = 500;
 
-
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
 
@@ -22,7 +21,7 @@ namespace Megaparsec {
 
             agent.position = new Vector(
                 constraintBox.width + 100,
-                zoneTop + Utils.random.next(zoneHeight)
+                zoneTop + Random.Current.next(zoneHeight)
             );
 
 

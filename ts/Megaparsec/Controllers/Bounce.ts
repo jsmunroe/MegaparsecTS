@@ -16,14 +16,14 @@ namespace Megaparsec {
             var zoneWidth = constraintBox.width - zoneLeft;
 
             agent.position = new Vector(
-                zoneLeft + Utils.random.next(zoneWidth),
+                zoneLeft + Random.Current.next(zoneWidth),
                 -agent.height * 2.0
             );
 
             var zoneHeight = (constraintBox.height - this._bounceDistance) * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
 
             properties.initialVelocity = new Vector(-150, 400);
             properties.targetVelocity = new Vector(-300, 0);

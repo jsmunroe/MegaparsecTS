@@ -1,3 +1,5 @@
+/// <reference path="../Lightspeed.ts" />
+
 namespace Megaparsec {
     export class StarField extends Lightspeed.Element {
         private _starCount: number;
@@ -16,12 +18,12 @@ namespace Megaparsec {
             for (var i = 0; i < this._starCount; i++) {
   
                 this._stars.push({
-                    x: Utils.random.next(context.canvasBox.width),
-                    y: Utils.random.next(context.canvasBox.height),
-                    relativeVelocity: Utils.random.next(),
+                    x: Random.Current.next(context.canvasBox.width),
+                    y: Random.Current.next(context.canvasBox.height),
+                    relativeVelocity: Random.Current.next(),
                     color: Color.getRandomColor(),
-                    radius: Utils.random.next() * 0.5,
-                    twinkle: Utils.random.nextInt(5000) === 1 ? 0 : 1
+                    radius: Random.Current.next() * 0.5,
+                    twinkle: Random.Current.nextInt(5000) === 1 ? 0 : 1
                 });
             }
         }
@@ -36,9 +38,9 @@ namespace Megaparsec {
                 star.x += localVelocityX * context.delta;
                 star.y += localVelocityY * context.delta;
 
-                if (star.twinkle && Utils.random.nextInt(5000) === 1) {
+                if (star.twinkle && Random.Current.nextInt(5000) === 1) {
                     star.twinkle = 0;
-                } else if (!star.twinkle && Utils.random.nextInt(50) === 1) {
+                } else if (!star.twinkle && Random.Current.nextInt(50) === 1) {
                     star.twinkle = 1;
                 }
     

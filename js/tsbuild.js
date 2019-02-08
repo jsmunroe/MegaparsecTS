@@ -206,11 +206,15 @@ var Lightspeed;
         Element.prototype.collidesWith = function (other) {
             return false;
         };
-        Element.prototype.collide = function (context) {
-            // optionally overloaded by extending classes to handle collission.
-        };
         Element.prototype.kill = function () {
             this._isDead = true;
+            this.onKill();
+        };
+        Element.prototype.onCollide = function (context) {
+            // optionally overloaded by extending classes to handle collission.
+        };
+        Element.prototype.onKill = function () {
+            // optionally overloaded by extending classes to handle collission.
         };
         Element._nextId = 0;
         return Element;
@@ -404,8 +408,8 @@ var Lightspeed;
                     var first = this._elements[i];
                     var second = this._elements[j];
                     if (first.collidesWith(second)) {
-                        first.collide(new Lightspeed.ElementCollisionContext(this, second));
-                        second.collide(new Lightspeed.ElementCollisionContext(this, first));
+                        first.onCollide(new Lightspeed.ElementCollisionContext(this, second));
+                        second.onCollide(new Lightspeed.ElementCollisionContext(this, first));
                     }
                 }
             }
@@ -783,14 +787,14 @@ var Lightspeed;
             Messenger.prototype.unsubsribe = function (source) {
                 this._subscriptions = this._subscriptions.filter(function (i) { return i.source === source; });
             };
-            Messenger.prototype.publish = function (message) {
-                this._subscriptions.filter(function (i) { return i.messageName === message.name; }).forEach(function (i) { return i.callback.bind(i.source).call(message); });
+            Messenger.prototype.publish = function (messageName, payload) {
+                this._subscriptions.filter(function (i) { return i.messageName === messageName; }).forEach(function (i) { return i.callback.bind(i.source).call(new Message(messageName, payload)); });
             };
             return Messenger;
         }());
         Utils.Messenger = Messenger;
         var Message = /** @class */ (function () {
-            function Message(name) {
+            function Message(name, payload) {
                 this._name = name;
             }
             Object.defineProperty(Message.prototype, "name", {
@@ -816,8 +820,9 @@ var Megaparsec;
     var Game = /** @class */ (function (_super) {
         __extends(Game, _super);
         function Game() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+            var _this = _super.call(this) || this;
             _this._pauseMessage = new Megaparsec.Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
+            Game.messenger.subscribe(_this, GameMessages.playerKilled, _this.onPlayerKilled);
             return _this;
         }
         Object.defineProperty(Game, "messenger", {
@@ -832,10 +837,13 @@ var Megaparsec;
             this.pushElement(new Megaparsec.Background());
             this.pushElement(new Megaparsec.StarField(200));
             this.pushElement(new Megaparsec.Hills());
+            this.loadPlayer();
+            this.loadLevel(config);
+        };
+        Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
-            this.loadLevel(config);
         };
         Game.prototype.loadLevel = function (config) {
             var level = Megaparsec.LevelBuilder.start()
@@ -854,11 +862,14 @@ var Megaparsec;
             this.removeElement(this._pauseMessage);
             _super.prototype.unpause.call(this);
         };
+        Game.prototype.onPlayerKilled = function (message) {
+            this.loadPlayer();
+        };
         Game.run = function () {
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
-            Megaparsec.Utils.keyboard.keys(Config.keys.pause, function () { return game.togglePause(); });
+            Keyboard.Current.keys(Config.keys.pause, function () { return game.togglePause(); });
             window.addEventListener('blur', function () {
                 if (!game.isPaused) {
                     game.pause();
@@ -869,6 +880,13 @@ var Megaparsec;
         return Game;
     }(Lightspeed.Engine));
     Megaparsec.Game = Game;
+    var GameMessages = /** @class */ (function () {
+        function GameMessages() {
+        }
+        GameMessages.playerKilled = 'playerKilled';
+        return GameMessages;
+    }());
+    Megaparsec.GameMessages = GameMessages;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -917,8 +935,6 @@ var Megaparsec;
     }());
     Megaparsec.LevelBuilder = LevelBuilder;
 })(Megaparsec || (Megaparsec = {}));
-var Vector = Lightspeed.Vector;
-var Box = Lightspeed.Box;
 var Lightspeed;
 (function (Lightspeed) {
     var Utils;
@@ -992,18 +1008,18 @@ var Lightspeed;
         Utils.Random = Random;
     })(Utils = Lightspeed.Utils || (Lightspeed.Utils = {}));
 })(Lightspeed || (Lightspeed = {}));
+/// <reference path="../LightSpeed/Utils/Keyboard.ts" />
+/// <reference path="../LightSpeed/Utils/Random.ts" />
+/// <reference path="../LightSpeed/Utils/Messenger.ts" />
+var Vector = Lightspeed.Vector;
+var Box = Lightspeed.Box;
+var Keyboard = Lightspeed.Utils.Keyboard;
+var Messenger = Lightspeed.Utils.Messenger;
+var Random = Lightspeed.Utils.Random;
 /// <reference path="../Lightspeed/Utils/Keyboard.ts" />
 /// <reference path="../Lightspeed/Utils/Random.ts" />
 var Megaparsec;
 (function (Megaparsec) {
-    var Utils = /** @class */ (function () {
-        function Utils() {
-        }
-        Utils.keyboard = Lightspeed.Utils.Keyboard.Current;
-        Utils.random = Lightspeed.Utils.Random.Current;
-        return Utils;
-    }());
-    Megaparsec.Utils = Utils;
     var Color = /** @class */ (function () {
         function Color() {
         }
@@ -1011,12 +1027,12 @@ var Megaparsec;
             var letters = '89ABCDEF';
             var color = '#';
             for (var i = 0; i < 6; i++) {
-                color += letters[Utils.random.nextInt(letters.length)];
+                color += letters[Random.Current.nextInt(letters.length)];
             }
             return color;
         };
         Color.getRandomShade = function (base, minShade, maxShade) {
-            return Color.lum(base, Utils.random.getBetween(minShade, maxShade));
+            return Color.lum(base, Random.Current.getBetween(minShade, maxShade));
         };
         Color.lum = function (color, percent) {
             var f = parseInt(color.slice(1), 16);
@@ -1104,7 +1120,7 @@ var Megaparsec;
         Agent.prototype.render = function (context) {
             this._sprite.draw(context.ctx, this.position);
         };
-        Agent.prototype.collide = function (context) {
+        Agent.prototype.onCollide = function (context) {
             if (context.otherElement instanceof Megaparsec.Shot) {
                 return; // Let Shot handle the Agent destruction.
             }
@@ -1136,8 +1152,8 @@ var Megaparsec;
         function Player() {
             return _super.call(this, new Megaparsec.Human, Megaparsec.Constrainer.boxIn, new Lightspeed.Sprite(Config.agents.player.image, Config.imageScale)) || this;
         }
-        Player.prototype.collide = function (context) {
-            // optionally overloaded by extending classes to handle collission.
+        Player.prototype.onKill = function () {
+            Megaparsec.Game.messenger.publish(Megaparsec.GameMessages.playerKilled);
         };
         return Player;
     }(Megaparsec.Agent));
@@ -1169,7 +1185,7 @@ var Megaparsec;
             ctx.fillStyle = this._color;
             ctx.fillRect(box.left, box.top, box.width, box.height);
         };
-        Shot.prototype.collide = function (context) {
+        Shot.prototype.onCollide = function (context) {
             if (context.otherElement instanceof Megaparsec.Agent && context.otherElement != this._origin) {
                 var agent = context.otherElement;
                 agent.explode(context);
@@ -1207,7 +1223,7 @@ var Megaparsec;
             var verticalConstraintTopology = Megaparsec.ConstraintToplogy[this._config.verticalConstraintTopology];
             var constrainer = new Megaparsec.Constrainer(horizontalConstraintTopology, verticalConstraintTopology);
             this._config.images.forEach(function (i) {
-                var controller = Megaparsec.Utils.random.pick(controllers);
+                var controller = Random.Current.pick(controllers);
                 var agent = new Megaparsec.Enemy(controller, constrainer, i);
                 _this._agents.push(agent);
             });
@@ -1311,11 +1327,11 @@ var Megaparsec;
             properties.phase = 0; // swooping
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
-            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            agent.position = new Vector(zoneLeft + Random.Current.next(zoneWidth), -agent.height * 2.0);
             var zoneHeight = (constraintBox.height - this._bounceDistance) * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
             properties.initialVelocity = new Vector(-150, 400);
             properties.targetVelocity = new Vector(-300, 0);
             agent.velocity = properties.initialVelocity;
@@ -1457,11 +1473,11 @@ var Megaparsec;
             properties.phase = 0; // swooping
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
-            agent.position = new Lightspeed.Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            agent.position = new Lightspeed.Vector(zoneLeft + Random.Current.next(zoneWidth), -agent.height * 2.0);
             var zoneHeight = constraintBox.height * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
             properties.initialVelocity = new Lightspeed.Vector(0, 400);
             properties.targetVelocity = new Lightspeed.Vector(-300, 0);
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
@@ -1498,11 +1514,11 @@ var Megaparsec;
             properties.phase = 0; // swooping
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
-            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            agent.position = new Vector(zoneLeft + Random.Current.next(zoneWidth), -agent.height * 2.0);
             var zoneHeight = (constraintBox.height - this._loopRadius) * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
             properties.initialVelocity = new Vector(-150, 400);
             properties.targetVelocity = new Vector(-300, 0);
             agent.velocity = properties.initialVelocity;
@@ -1549,11 +1565,11 @@ var Megaparsec;
             properties.phase = 0; // swooping
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
-            agent.position = new Vector(zoneLeft + Megaparsec.Utils.random.next(zoneWidth), -agent.height * 2.0);
+            agent.position = new Vector(zoneLeft + Random.Current.next(zoneWidth), -agent.height * 2.0);
             var zoneHeight = constraintBox.height * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Megaparsec.Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
             properties.initialVelocity = new Vector(0, 400);
             properties.targetVelocity = new Vector(-300, 0);
             agent.velocity = new Vector(0, properties.initialVelocity.y);
@@ -1621,7 +1637,7 @@ var Megaparsec;
             properties.targetX = constraintBox.width - 50;
             var zoneTop = constraintBox.height * 0.15;
             var zoneHeight = constraintBox.height - zoneTop * 2;
-            agent.position = new Vector(constraintBox.width + 100, zoneTop + Megaparsec.Utils.random.next(zoneHeight));
+            agent.position = new Vector(constraintBox.width + 100, zoneTop + Random.Current.next(zoneHeight));
             agent.velocity = new Vector(-200, 0);
         };
         Target.prototype.updateAgent = function (agent, context) {
@@ -1722,28 +1738,28 @@ var Megaparsec;
             var keys = Config.keys;
             var accelerationX = 0;
             var accelerationY = 0;
-            if (Megaparsec.Utils.keyboard.keys(keys.moveUp)) {
+            if (Keyboard.Current.keys(keys.moveUp)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationY = -this._movementAcceleration;
                 }
             }
-            if (Megaparsec.Utils.keyboard.keys(keys.moveDown)) {
+            if (Keyboard.Current.keys(keys.moveDown)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationY += this._movementAcceleration;
                 }
             }
-            if (Megaparsec.Utils.keyboard.keys(keys.moveLeft)) {
+            if (Keyboard.Current.keys(keys.moveLeft)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX = -this._movementAcceleration;
                 }
             }
-            if (Megaparsec.Utils.keyboard.keys(keys.moveRight)) {
+            if (Keyboard.Current.keys(keys.moveRight)) {
                 if (agent.velocity.magnitude < this._maximumVelocity) {
                     accelerationX += this._movementAcceleration;
                 }
             }
             properties.lastFireElapsed += context.elapsed;
-            if (Megaparsec.Utils.keyboard.keys(keys.primaryFire)) {
+            if (Keyboard.Current.keys(keys.primaryFire)) {
                 if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
                     context.activate(new Megaparsec.Shot(agent, new Lightspeed.Vector(800)));
                     properties.lastFireElapsed = 0;
@@ -1784,13 +1800,13 @@ var Megaparsec;
         }
         Explosion.prototype.init = function (context) {
             for (var i = 0; i < this._particleCount; i++) {
-                var argument = Megaparsec.Utils.random.next(Math.PI * 2);
-                var magnitude = Megaparsec.Utils.random.next(this._particleMaxMagnitude);
+                var argument = Random.Current.next(Math.PI * 2);
+                var magnitude = Random.Current.next(this._particleMaxMagnitude);
                 this._particles.push({
                     position: new Lightspeed.Vector(0, 0),
                     velocity: Lightspeed.Vector.fromPolar(argument, magnitude),
                     color: Megaparsec.Color.getRandomColor(),
-                    radius: Megaparsec.Utils.random.next(2)
+                    radius: Random.Current.next(2)
                 });
             }
         };
@@ -1853,9 +1869,9 @@ var Megaparsec;
         }
         Hills.prototype.generateHills = function (hillX, canvasWidth) {
             while (hillX <= canvasWidth + this._maxHillWidth) {
-                var height = Megaparsec.Utils.random.getBetween(this._minHillHeight, this._maxHillHeight);
-                var width = Megaparsec.Utils.random.getBetween(this._minHillWidth, this._maxHillWidth);
-                var depth = Megaparsec.Utils.random.next(40);
+                var height = Random.Current.getBetween(this._minHillHeight, this._maxHillHeight);
+                var width = Random.Current.getBetween(this._minHillWidth, this._maxHillWidth);
+                var depth = Random.Current.next(40);
                 var velocity = -200 - depth;
                 var hill = {
                     start: hillX,
@@ -1946,6 +1962,7 @@ var Megaparsec;
     }(Lightspeed.Element));
     Megaparsec.Message = Message;
 })(Megaparsec || (Megaparsec = {}));
+/// <reference path="../Lightspeed.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var StarField = /** @class */ (function (_super) {
@@ -1961,12 +1978,12 @@ var Megaparsec;
         StarField.prototype.init = function (context) {
             for (var i = 0; i < this._starCount; i++) {
                 this._stars.push({
-                    x: Megaparsec.Utils.random.next(context.canvasBox.width),
-                    y: Megaparsec.Utils.random.next(context.canvasBox.height),
-                    relativeVelocity: Megaparsec.Utils.random.next(),
+                    x: Random.Current.next(context.canvasBox.width),
+                    y: Random.Current.next(context.canvasBox.height),
+                    relativeVelocity: Random.Current.next(),
                     color: Megaparsec.Color.getRandomColor(),
-                    radius: Megaparsec.Utils.random.next() * 0.5,
-                    twinkle: Megaparsec.Utils.random.nextInt(5000) === 1 ? 0 : 1
+                    radius: Random.Current.next() * 0.5,
+                    twinkle: Random.Current.nextInt(5000) === 1 ? 0 : 1
                 });
             }
         };
@@ -1977,10 +1994,10 @@ var Megaparsec;
                 var localVelocityY = this.velocityY * star.relativeVelocity;
                 star.x += localVelocityX * context.delta;
                 star.y += localVelocityY * context.delta;
-                if (star.twinkle && Megaparsec.Utils.random.nextInt(5000) === 1) {
+                if (star.twinkle && Random.Current.nextInt(5000) === 1) {
                     star.twinkle = 0;
                 }
-                else if (!star.twinkle && Megaparsec.Utils.random.nextInt(50) === 1) {
+                else if (!star.twinkle && Random.Current.nextInt(50) === 1) {
                     star.twinkle = 1;
                 }
                 if (localVelocityX < 0 && star.x < -star.radius) {

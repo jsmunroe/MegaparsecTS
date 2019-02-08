@@ -179,8 +179,8 @@ namespace Lightspeed {
                     var second = this._elements[j];
     
                     if (first.collidesWith(second)) {
-                        first.collide(new ElementCollisionContext(this, second));
-                        second.collide(new ElementCollisionContext(this, first));
+                        first.onCollide(new ElementCollisionContext(this, second));
+                        second.onCollide(new ElementCollisionContext(this, first));
                     }
                 }
             }

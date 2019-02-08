@@ -11,14 +11,14 @@ namespace Megaparsec {
             var zoneWidth = constraintBox.width - zoneLeft;
 
             agent.position = new Lightspeed.Vector(
-                zoneLeft + Utils.random.next(zoneWidth),
+                zoneLeft + Random.Current.next(zoneWidth),
                 -agent.height * 2.0
             );
 
             var zoneHeight = constraintBox.height * 0.7;
             var zoneTop = (constraintBox.height - zoneHeight) / 2.0;
             properties.initialY = agent.position.y;
-            properties.targetY = zoneTop + Utils.random.next(zoneHeight);
+            properties.targetY = zoneTop + Random.Current.next(zoneHeight);
 
             properties.initialVelocity = new Lightspeed.Vector(0, 400);
             properties.targetVelocity = new Lightspeed.Vector(-300, 0);

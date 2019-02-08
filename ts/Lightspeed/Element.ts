@@ -33,12 +33,17 @@ namespace Lightspeed {
             return false;
         }
         
-        collide(context: Lightspeed.ElementCollisionContext): void {
+        kill() : void {
+            this._isDead = true;
+            this.onKill();
+        }
+
+        onCollide(context: Lightspeed.ElementCollisionContext): void {
             // optionally overloaded by extending classes to handle collission.
         }
 
-        kill() : void {
-            this._isDead = true;
+        protected onKill() : void {
+            // optionally overloaded by extending classes to handle collission.
         }
     }
 }
