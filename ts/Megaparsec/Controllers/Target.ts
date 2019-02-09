@@ -42,7 +42,7 @@ namespace Megaparsec {
 
             if (properties.phase === 1) { // targetting 
             
-                var target :Player = <Player>context.findFirst(i => i instanceof Player);
+                var target :Player = <Player>context.engine.findFirstElement(i => i instanceof Player);
 
                 if (!target || target.isDead) {
                     agent.velocity = new Vector();

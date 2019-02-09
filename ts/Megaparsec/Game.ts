@@ -46,6 +46,7 @@ namespace Megaparsec {
                     .pushWave('enemy3', 1)
                     .pushWave('enemy2', 2)
                     .build())
+                .addEvent(new ChangeLevel(2, '#DD0000'))
                 .addLevel(level => level
                     .pushWave('enemy2', 1)
                     .pushWave('enemy1', 1)

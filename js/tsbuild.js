@@ -245,9 +245,17 @@ var Lightspeed;
 var Lightspeed;
 (function (Lightspeed) {
     var ElementInitContext = /** @class */ (function () {
-        function ElementInitContext(canvas) {
+        function ElementInitContext(engine, canvas) {
+            this._engine = engine;
             this._canvasBox = canvas.box;
         }
+        Object.defineProperty(ElementInitContext.prototype, "engine", {
+            get: function () {
+                return this._engine;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(ElementInitContext.prototype, "canvasBox", {
             get: function () {
                 return this._canvasBox;
@@ -274,7 +282,7 @@ var Lightspeed;
         };
         Engine.prototype.pushElement = function (element) {
             this._elements.push(element);
-            var initContext = new Lightspeed.ElementInitContext(this.canvas);
+            var initContext = new Lightspeed.ElementInitContext(this, this.canvas);
             element.init(initContext);
         };
         Engine.prototype.removeElement = function (element) {
@@ -498,14 +506,15 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(FrameUpdateContext.prototype, "engine", {
+            get: function () {
+                return this._engine;
+            },
+            enumerable: true,
+            configurable: true
+        });
         FrameUpdateContext.prototype.activate = function (element) {
             this._engine.pushElement(element);
-        };
-        FrameUpdateContext.prototype.findFirst = function (predicate) {
-            return this._engine.findFirstElement(predicate);
-        };
-        FrameUpdateContext.prototype.findClosest = function (position, predicate) {
-            return this._engine.findClosestElement(position, predicate);
         };
         FrameUpdateContext.prototype.delay = function (time, action) {
             this._engine.requestTimeout(time, this.currentElement, action);
@@ -847,12 +856,13 @@ var Megaparsec;
         };
         Game.prototype.loadTimeline = function () {
             var timeLine = Megaparsec.Timeline.start()
-                .addLevel(function (level) { return level
-                .pushWave('enemy1', 1)
-                .pushWave('enemy2', 1)
-                .pushWave('enemy3', 1)
-                .pushWave('enemy2', 2)
-                .build(); })
+                // .addLevel(level => level
+                //     .pushWave('enemy1', 1)
+                //     .pushWave('enemy2', 1)
+                //     .pushWave('enemy3', 1)
+                //     .pushWave('enemy2', 2)
+                //     .build())
+                .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
                 .addLevel(function (level) { return level
                 .pushWave('enemy2', 1)
                 .pushWave('enemy1', 1)
@@ -894,53 +904,6 @@ var Megaparsec;
         return GameMessages;
     }());
     Megaparsec.GameMessages = GameMessages;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var Level = /** @class */ (function (_super) {
-        __extends(Level, _super);
-        function Level(waves) {
-            var _this = _super.call(this) || this;
-            _this._waves = [];
-            _this._waves = waves;
-            return _this;
-        }
-        Level.prototype.update = function (context) {
-            if (!this._currentWave || this._currentWave.isDead) {
-                if (!this._waves.length) {
-                    this.kill();
-                    return;
-                }
-                var nextWave = this._waves.shift();
-                context.activate(nextWave);
-                this._currentWave = nextWave;
-            }
-        };
-        return Level;
-    }(Lightspeed.Element));
-    Megaparsec.Level = Level;
-    var LevelBuilder = /** @class */ (function () {
-        function LevelBuilder() {
-            this._waves = [];
-        }
-        LevelBuilder.start = function () {
-            return new LevelBuilder();
-        };
-        LevelBuilder.prototype.pushWave = function (enemyName, difficulty) {
-            if (!Config.agents[enemyName]) {
-                return this;
-            }
-            var enemyConfig = Config.agents[enemyName];
-            var wave = new Megaparsec.Wave(enemyConfig);
-            this._waves.push(wave);
-            return this;
-        };
-        LevelBuilder.prototype.build = function () {
-            return new Level(this._waves);
-        };
-        return LevelBuilder;
-    }());
-    Megaparsec.LevelBuilder = LevelBuilder;
 })(Megaparsec || (Megaparsec = {}));
 var Lightspeed;
 (function (Lightspeed) {
@@ -1023,43 +986,6 @@ var Box = Lightspeed.Box;
 var Keyboard = Lightspeed.Utils.Keyboard;
 var Messenger = Lightspeed.Utils.Messenger;
 var Random = Lightspeed.Utils.Random;
-var Megaparsec;
-(function (Megaparsec) {
-    var Timeline = /** @class */ (function (_super) {
-        __extends(Timeline, _super);
-        function Timeline() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this._currentIndex = -1;
-            _this._currentEvent = null;
-            _this._events = [];
-            return _this;
-        }
-        Timeline.start = function () {
-            return new Timeline();
-        };
-        Timeline.prototype.addLevel = function (buildLevel) {
-            this._events.push(buildLevel(Megaparsec.LevelBuilder.start()));
-            return this;
-        };
-        Timeline.prototype.addEvent = function (event) {
-            this._events.push(event);
-            return this;
-        };
-        Timeline.prototype.update = function (context) {
-            if (!this._currentEvent || this._currentEvent.isDead) {
-                this._currentIndex++;
-                this._currentEvent = this._events[this._currentIndex];
-                if (!this._currentEvent) {
-                    this.kill();
-                    return;
-                }
-                context.activate(this._currentEvent);
-            }
-        };
-        return Timeline;
-    }(Lightspeed.Element));
-    Megaparsec.Timeline = Timeline;
-})(Megaparsec || (Megaparsec = {}));
 /// <reference path="../Lightspeed/Utils/Keyboard.ts" />
 /// <reference path="../Lightspeed/Utils/Random.ts" />
 var Megaparsec;
@@ -1694,7 +1620,7 @@ var Megaparsec;
                 }
             }
             if (properties.phase === 1) { // targetting 
-                var target = context.findFirst(function (i) { return i instanceof Megaparsec.Player; });
+                var target = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Player; });
                 if (!target || target.isDead) {
                     agent.velocity = new Vector();
                     return;
@@ -1911,6 +1837,7 @@ var Megaparsec;
             if (baseColor) {
                 _this._baseColor = baseColor;
             }
+            _this.velocity = new Vector(-200, 0);
             return _this;
         }
         Hills.prototype.generateHills = function (hillX, canvasWidth) {
@@ -1918,12 +1845,12 @@ var Megaparsec;
                 var height = Random.Current.getBetween(this._minHillHeight, this._maxHillHeight);
                 var width = Random.Current.getBetween(this._minHillWidth, this._maxHillWidth);
                 var depth = Random.Current.next(40);
-                var velocity = -200 - depth;
+                var velocity = depth;
                 var hill = {
                     start: hillX,
                     width: width,
                     height: height,
-                    color: Megaparsec.Color.getRandomShade('#0d1c01', 0.0, 0.1),
+                    color: Megaparsec.Color.getRandomShade(this._baseColor, 0.0, 0.1),
                     velocity: velocity,
                     depth: depth,
                 };
@@ -1935,11 +1862,12 @@ var Megaparsec;
             this.generateHills(-this._maxHillWidth, context.canvasBox.width);
         };
         Hills.prototype.update = function (context) {
+            _super.prototype.update.call(this, context);
             var hillsToKeep = [];
             for (var i = 0; i < this._hills.length; i++) {
                 var hill = this._hills[i];
                 if (hill.start + hill.width > 0) {
-                    hill.start += hill.velocity * context.delta;
+                    hill.start += (this.velocity.x - hill.velocity) * context.delta;
                     hillsToKeep.push(hill);
                 }
             }
@@ -1958,15 +1886,15 @@ var Megaparsec;
             var hills = this._hills.slice(0).sort(function (i, j) { return i.depth - j.depth; });
             for (var i = 0; i < hills.length; i++) {
                 var hill = hills[i];
-                var fillStyle = ctx.createLinearGradient(hill.start + hill.width * 0.5, canvasHeight - hill.height, hill.start + hill.width * 0.5, canvasHeight + 10);
+                var fillStyle = ctx.createLinearGradient(hill.start + hill.width * 0.5, canvasHeight - hill.height + this.position.y, hill.start + hill.width * 0.5, canvasHeight + 10 + this.position.y);
                 fillStyle.addColorStop(0, hill.color);
                 fillStyle.addColorStop(1, 'black');
                 ctx.beginPath();
                 ctx.fillStyle = fillStyle;
-                ctx.moveTo(hill.start - hill.width * 0.3, canvasHeight + 10);
-                ctx.lineTo(hill.start + hill.width * 0.3, canvasHeight - hill.height * 0.7);
-                ctx.arcTo(hill.start + hill.width * 0.5, canvasHeight - hill.height, hill.start + hill.width * 0.7, canvasHeight - hill.height * 0.7, hill.width / 6);
-                ctx.lineTo(hill.start + hill.width * 1.3, canvasHeight + 10);
+                ctx.moveTo(hill.start - hill.width * 0.3, canvasHeight + 10 + this.position.y);
+                ctx.lineTo(hill.start + hill.width * 0.3, canvasHeight - hill.height * 0.7 + this.position.y);
+                ctx.arcTo(hill.start + hill.width * 0.5, canvasHeight - hill.height + this.position.y, hill.start + hill.width * 0.7, canvasHeight - hill.height * 0.7 + this.position.y, hill.width / 6);
+                ctx.lineTo(hill.start + hill.width * 1.3, canvasHeight + 10 + this.position.y);
                 ctx.fill();
             }
         };
@@ -2016,8 +1944,6 @@ var Megaparsec;
         function StarField(starCount) {
             var _this = _super.call(this) || this;
             _this._stars = [];
-            _this.velocityX = 0;
-            _this.velocityY = 0;
             _this._starCount = starCount || 25;
             return _this;
         }
@@ -2034,10 +1960,11 @@ var Megaparsec;
             }
         };
         StarField.prototype.update = function (context) {
+            _super.prototype.update.call(this, context);
             for (var i = 0; i < this._stars.length; i++) {
                 var star = this._stars[i];
-                var localVelocityX = this.velocityX * star.relativeVelocity;
-                var localVelocityY = this.velocityY * star.relativeVelocity;
+                var localVelocityX = this.velocity.x * star.relativeVelocity;
+                var localVelocityY = this.velocity.y * star.relativeVelocity;
                 star.x += localVelocityX * context.delta;
                 star.y += localVelocityY * context.delta;
                 if (star.twinkle && Random.Current.nextInt(5000) === 1) {
@@ -2073,7 +2000,186 @@ var Megaparsec;
             });
         };
         return StarField;
-    }(Lightspeed.Element));
+    }(Lightspeed.InertialElement));
     Megaparsec.StarField = StarField;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var ChangeLevel = /** @class */ (function (_super) {
+        __extends(ChangeLevel, _super);
+        function ChangeLevel(nextLevelNumber, nextLevelColor) {
+            var _this = _super.call(this) || this;
+            _this._phaseNumber = 0;
+            _this._phases = [];
+            _this._elapsed = 0;
+            _this._nextLevelNumber = nextLevelNumber;
+            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
+            _this._nextLevelColor = nextLevelColor;
+            return _this;
+        }
+        ChangeLevel.prototype.init = function (context) {
+            var _this = this;
+            this._hills = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            this._hills.acceleration = new Vector(-5, 1);
+            this._phases = [
+                Phase.when(function (context) { return _this._elapsed > 500; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector(-5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 2000; })
+                    .do(function (context) {
+                    _this._hills.kill();
+                }),
+                Phase.when(function (context) { return _this._elapsed > 6000; })
+                    .do(function (context) {
+                    context.activate(_this._nextLevelMessage);
+                    _this._starField.acceleration = new Vector(5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 12000 || _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
+                    hills.position = _this._hills.position;
+                    hills.velocity = _this._hills.velocity.withY(function (y) { return -y; });
+                    hills.acceleration = _this._hills.acceleration.scale(-1);
+                    context.activate(hills);
+                    _this._hills = hills;
+                }),
+                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector();
+                    _this._starField.velocity = new Vector();
+                }),
+                Phase.when(function (context) { return _this._hills.position.y <= 0; })
+                    .do(function (context) {
+                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
+                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
+                }),
+                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
+                    .do(function (context) {
+                    _this._hills.acceleration = new Vector();
+                    _this._nextLevelMessage.kill();
+                }),
+            ];
+        };
+        ChangeLevel.prototype.update = function (context) {
+            var phase = this._phases[this._phaseNumber];
+            if (!phase) {
+                this.kill();
+                return;
+            }
+            this._elapsed += context.elapsed;
+            if (phase.act(this, context)) {
+                this._phaseNumber++;
+            }
+        };
+        return ChangeLevel;
+    }(Lightspeed.Element));
+    Megaparsec.ChangeLevel = ChangeLevel;
+    var Phase = /** @class */ (function () {
+        function Phase() {
+        }
+        Phase.when = function (condition) {
+            var phase = new Phase();
+            phase._condition = condition;
+            return phase;
+        };
+        Phase.prototype.do = function (action) {
+            this._action = action;
+            return this;
+        };
+        Phase.prototype.act = function (element, context) {
+            if (!this._condition.bind(element)(context)) {
+                return false;
+            }
+            this._action.bind(element)(context);
+            return true;
+        };
+        return Phase;
+    }());
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Level = /** @class */ (function (_super) {
+        __extends(Level, _super);
+        function Level(waves) {
+            var _this = _super.call(this) || this;
+            _this._waves = [];
+            _this._waves = waves;
+            return _this;
+        }
+        Level.prototype.update = function (context) {
+            if (!this._currentWave || this._currentWave.isDead) {
+                if (!this._waves.length) {
+                    this.kill();
+                    return;
+                }
+                var nextWave = this._waves.shift();
+                context.activate(nextWave);
+                this._currentWave = nextWave;
+            }
+        };
+        return Level;
+    }(Lightspeed.Element));
+    Megaparsec.Level = Level;
+    var LevelBuilder = /** @class */ (function () {
+        function LevelBuilder() {
+            this._waves = [];
+        }
+        LevelBuilder.start = function () {
+            return new LevelBuilder();
+        };
+        LevelBuilder.prototype.pushWave = function (enemyName, difficulty) {
+            if (!Config.agents[enemyName]) {
+                return this;
+            }
+            var enemyConfig = Config.agents[enemyName];
+            var wave = new Megaparsec.Wave(enemyConfig);
+            this._waves.push(wave);
+            return this;
+        };
+        LevelBuilder.prototype.build = function () {
+            return new Level(this._waves);
+        };
+        return LevelBuilder;
+    }());
+    Megaparsec.LevelBuilder = LevelBuilder;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Timeline = /** @class */ (function (_super) {
+        __extends(Timeline, _super);
+        function Timeline() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._currentIndex = -1;
+            _this._currentEvent = null;
+            _this._events = [];
+            return _this;
+        }
+        Timeline.start = function () {
+            return new Timeline();
+        };
+        Timeline.prototype.addLevel = function (buildLevel) {
+            this._events.push(buildLevel(Megaparsec.LevelBuilder.start()));
+            return this;
+        };
+        Timeline.prototype.addEvent = function (event) {
+            this._events.push(event);
+            return this;
+        };
+        Timeline.prototype.update = function (context) {
+            if (!this._currentEvent || this._currentEvent.isDead) {
+                this._currentIndex++;
+                this._currentEvent = this._events[this._currentIndex];
+                if (!this._currentEvent) {
+                    this.kill();
+                    return;
+                }
+                context.activate(this._currentEvent);
+            }
+        };
+        return Timeline;
+    }(Lightspeed.Element));
+    Megaparsec.Timeline = Timeline;
 })(Megaparsec || (Megaparsec = {}));
 //# sourceMappingURL=tsbuild.js.map

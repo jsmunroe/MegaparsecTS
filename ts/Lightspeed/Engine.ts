@@ -20,7 +20,7 @@ namespace Lightspeed {
         public pushElement(element: Element) {
             this._elements.push(element);
 
-            var initContext = new ElementInitContext(this.canvas);
+            var initContext = new ElementInitContext(this, this.canvas);
             element.init(initContext);
         }
 

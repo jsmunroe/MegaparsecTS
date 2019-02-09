@@ -1,7 +1,7 @@
 /// <reference path="../Lightspeed.ts" />
 
 namespace Megaparsec {
-    export class StarField extends Lightspeed.Element {
+    export class StarField extends Lightspeed.InertialElement {
         private _starCount: number;
         private _stars = [];
 
@@ -10,9 +10,6 @@ namespace Megaparsec {
 
             this._starCount = starCount || 25;
         }
-
-        public velocityX: number = 0;
-        public velocityY: number = 0; 
 
         init(context: Lightspeed.ElementInitContext) {
             for (var i = 0; i < this._starCount; i++) {
@@ -29,11 +26,13 @@ namespace Megaparsec {
         }
 
         update(context: Lightspeed.FrameUpdateContext) {
+            super.update(context);
+            
             for (let i = 0; i < this._stars.length; i++) {
                 const star = this._stars[i];
 
-                var localVelocityX = this.velocityX * star.relativeVelocity;
-                var localVelocityY = this.velocityY * star.relativeVelocity;
+                var localVelocityX = this.velocity.x * star.relativeVelocity;
+                var localVelocityY = this.velocity.y * star.relativeVelocity;
 
                 star.x += localVelocityX * context.delta;
                 star.y += localVelocityY * context.delta;
