@@ -112,6 +112,11 @@ namespace Lightspeed {
                 // Get element timeouts for this frame.
                 var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
 
+                for (let i = 0; i < currentElementTimeouts.filter(p => p.element == null).length; i++) {
+                    const elementTimeout = currentElementTimeouts[i];
+                    elementTimeout.action.bind(this)(updateContext);
+                }
+
                 // Remove dead elements.
                 this._elements = this._elements.filter(p => !p.isDead)
 
@@ -127,8 +132,7 @@ namespace Lightspeed {
                     var elementTimeouts = currentElementTimeouts.filter(i => i.element === element);
                     for (let j = 0; j < elementTimeouts.length; j++) {
                         const elementTimeout = elementTimeouts[j];
-                        elementTimeout.elapsed += updateContext.elapsed;
-                        elementTimeout.action.bind(elementTimeouts[j].element)(updateContext);
+                        elementTimeout.action.bind(elementTimeout.element)(updateContext);
                     }
                 }
             }

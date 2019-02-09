@@ -362,6 +362,10 @@ var Lightspeed;
                 this._wasPaused = false;
                 // Get element timeouts for this frame.
                 var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
+                for (var i = 0; i < currentElementTimeouts.filter(function (p) { return p.element == null; }).length; i++) {
+                    var elementTimeout = currentElementTimeouts[i];
+                    elementTimeout.action.bind(this)(updateContext);
+                }
                 // Remove dead elements.
                 this._elements = this._elements.filter(function (p) { return !p.isDead; });
                 this.checkCollisions();
@@ -372,8 +376,7 @@ var Lightspeed;
                     elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
                     for (var j = 0; j < elementTimeouts.length; j++) {
                         var elementTimeout = elementTimeouts[j];
-                        elementTimeout.elapsed += updateContext.elapsed;
-                        elementTimeout.action.bind(elementTimeouts[j].element)(updateContext);
+                        elementTimeout.action.bind(elementTimeout.element)(updateContext);
                     }
                 };
                 var this_1 = this, elementTimeouts;
@@ -856,12 +859,12 @@ var Megaparsec;
         };
         Game.prototype.loadTimeline = function () {
             var timeLine = Megaparsec.Timeline.start()
-                // .addLevel(level => level
-                //     .pushWave('enemy1', 1)
-                //     .pushWave('enemy2', 1)
-                //     .pushWave('enemy3', 1)
-                //     .pushWave('enemy2', 2)
-                //     .build())
+                .addLevel(function (level) { return level
+                .pushWave('enemy1', 1)
+                .pushWave('enemy2', 1)
+                .pushWave('enemy3', 1)
+                .pushWave('enemy2', 2)
+                .build(); })
                 .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
                 .addLevel(function (level) { return level
                 .pushWave('enemy2', 1)
@@ -880,7 +883,8 @@ var Megaparsec;
             _super.prototype.unpause.call(this);
         };
         Game.prototype.onPlayerKilled = function (message) {
-            this.loadPlayer();
+            var _this = this;
+            this.requestTimeout(500, null, function (context) { return _this.loadPlayer(); });
         };
         Game.run = function () {
             var game = Game.s_current = new Game();

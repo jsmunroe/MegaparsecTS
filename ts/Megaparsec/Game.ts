@@ -70,9 +70,9 @@ namespace Megaparsec {
         }
 
         private onPlayerKilled(message: Lightspeed.Utils.Message) {
-            this.loadPlayer();
+            this.requestTimeout(500, null, context => this.loadPlayer());
         }
-
+ 
         static run() :void {
             var game = Game.s_current = new Game();
             game.load(Config);
