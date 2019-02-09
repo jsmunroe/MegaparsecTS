@@ -1,5 +1,5 @@
 namespace Megaparsec {
-    export class Hills extends Lightspeed.Element {
+    export class Hills extends Lightspeed.InertialElement {
         private _maxHillHeight: number = 150;
         private _minHillHeight: number = 50;
         private _maxHillWidth: number = 150;
@@ -7,8 +7,15 @@ namespace Megaparsec {
 
         private _hills = [];
 
-        public velocityX: number = 0;
-        public velocityY: number = 0; 
+        private _baseColor = '#0d1c01';
+
+        constructor(baseColor?: string) {
+            super();
+            
+            if (baseColor) {
+                this._baseColor = baseColor;
+            }
+        }
 
         generateHills(hillX: number, canvasWidth: number) {
    

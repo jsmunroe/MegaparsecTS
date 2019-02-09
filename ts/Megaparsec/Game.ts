@@ -28,8 +28,8 @@ namespace Megaparsec {
             this.pushElement(new Hills());
 
             this.loadPlayer();
-            
-            this.loadLevel(config);
+
+            this.loadTimeline();
         }
 
         loadPlayer() {
@@ -38,15 +38,22 @@ namespace Megaparsec {
             this.pushElement(this._player);
         }
 
-        loadLevel(config: any) {
-            var level = LevelBuilder.start()
-                //.pushWave('enemy1', 1)
-                .pushWave('enemy2', 1)
-                .pushWave('enemy3', 1)
-                .pushWave('enemy2', 2)
-                .build();
+        loadTimeline() {
+            var timeLine: Timeline = Timeline.start()
+                .addLevel(level => level
+                    .pushWave('enemy1', 1)
+                    .pushWave('enemy2', 1)
+                    .pushWave('enemy3', 1)
+                    .pushWave('enemy2', 2)
+                    .build())
+                .addLevel(level => level
+                    .pushWave('enemy2', 1)
+                    .pushWave('enemy1', 1)
+                    .pushWave('enemy3', 1)
+                    .pushWave('enemy2', 2)
+                    .build())
 
-            this.pushElement(level);
+            this.pushElement(timeLine);
         }
 
         pause() {

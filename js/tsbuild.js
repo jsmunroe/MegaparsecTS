@@ -838,21 +838,28 @@ var Megaparsec;
             this.pushElement(new Megaparsec.StarField(200));
             this.pushElement(new Megaparsec.Hills());
             this.loadPlayer();
-            this.loadLevel(config);
+            this.loadTimeline();
         };
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
             this._player.position = new Lightspeed.Vector(100, 100);
             this.pushElement(this._player);
         };
-        Game.prototype.loadLevel = function (config) {
-            var level = Megaparsec.LevelBuilder.start()
-                //.pushWave('enemy1', 1)
+        Game.prototype.loadTimeline = function () {
+            var timeLine = Megaparsec.Timeline.start()
+                .addLevel(function (level) { return level
+                .pushWave('enemy1', 1)
                 .pushWave('enemy2', 1)
                 .pushWave('enemy3', 1)
                 .pushWave('enemy2', 2)
-                .build();
-            this.pushElement(level);
+                .build(); })
+                .addLevel(function (level) { return level
+                .pushWave('enemy2', 1)
+                .pushWave('enemy1', 1)
+                .pushWave('enemy3', 1)
+                .pushWave('enemy2', 2)
+                .build(); });
+            this.pushElement(timeLine);
         };
         Game.prototype.pause = function () {
             this.pushElement(this._pauseMessage);
@@ -1016,6 +1023,43 @@ var Box = Lightspeed.Box;
 var Keyboard = Lightspeed.Utils.Keyboard;
 var Messenger = Lightspeed.Utils.Messenger;
 var Random = Lightspeed.Utils.Random;
+var Megaparsec;
+(function (Megaparsec) {
+    var Timeline = /** @class */ (function (_super) {
+        __extends(Timeline, _super);
+        function Timeline() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._currentIndex = -1;
+            _this._currentEvent = null;
+            _this._events = [];
+            return _this;
+        }
+        Timeline.start = function () {
+            return new Timeline();
+        };
+        Timeline.prototype.addLevel = function (buildLevel) {
+            this._events.push(buildLevel(Megaparsec.LevelBuilder.start()));
+            return this;
+        };
+        Timeline.prototype.addEvent = function (event) {
+            this._events.push(event);
+            return this;
+        };
+        Timeline.prototype.update = function (context) {
+            if (!this._currentEvent || this._currentEvent.isDead) {
+                this._currentIndex++;
+                this._currentEvent = this._events[this._currentIndex];
+                if (!this._currentEvent) {
+                    this.kill();
+                    return;
+                }
+                context.activate(this._currentEvent);
+            }
+        };
+        return Timeline;
+    }(Lightspeed.Element));
+    Megaparsec.Timeline = Timeline;
+})(Megaparsec || (Megaparsec = {}));
 /// <reference path="../Lightspeed/Utils/Keyboard.ts" />
 /// <reference path="../Lightspeed/Utils/Random.ts" />
 var Megaparsec;
@@ -1856,15 +1900,17 @@ var Megaparsec;
 (function (Megaparsec) {
     var Hills = /** @class */ (function (_super) {
         __extends(Hills, _super);
-        function Hills() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Hills(baseColor) {
+            var _this = _super.call(this) || this;
             _this._maxHillHeight = 150;
             _this._minHillHeight = 50;
             _this._maxHillWidth = 150;
             _this._minHillWidth = 100;
             _this._hills = [];
-            _this.velocityX = 0;
-            _this.velocityY = 0;
+            _this._baseColor = '#0d1c01';
+            if (baseColor) {
+                _this._baseColor = baseColor;
+            }
             return _this;
         }
         Hills.prototype.generateHills = function (hillX, canvasWidth) {
@@ -1925,7 +1971,7 @@ var Megaparsec;
             }
         };
         return Hills;
-    }(Lightspeed.Element));
+    }(Lightspeed.InertialElement));
     Megaparsec.Hills = Hills;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
