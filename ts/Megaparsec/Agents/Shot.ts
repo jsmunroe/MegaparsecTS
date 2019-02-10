@@ -6,6 +6,10 @@ namespace Megaparsec {
 
         private _passesThroughOnHit: boolean = false;
 
+        public get origin(): GameObject {
+            return this._origin;
+        }
+
         constructor(origin: GameObject, velocity: Lightspeed.Vector, acceleration?: Lightspeed.Vector) {
             super(20, 2.5, Constrainer.killOutOfBounds);
 
@@ -36,13 +40,12 @@ namespace Megaparsec {
         }
 
         onCollide(context: Lightspeed.ElementCollisionContext): void {
-            if (context.otherElement instanceof Agent && context.otherElement != this._origin) {            
-                var agent :Agent = context.otherElement as Agent
-                agent.explode(context);
+            if (context.otherElement === this._origin) {
+                return;
+            }
 
-                if (!this._passesThroughOnHit) {
-                    this.kill();
-                }
+            if (!this._passesThroughOnHit) {
+                this.kill();
             }
         }
     }

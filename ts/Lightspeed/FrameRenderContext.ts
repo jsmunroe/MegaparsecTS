@@ -2,10 +2,12 @@ namespace Lightspeed {
     export class FrameRenderContext {
         private _engine : Engine;
         private _ctx: CanvasRenderingContext2D;
+        private _timeStamp: DOMHighResTimeStamp;
 
-        constructor(engine : Engine, ctx: CanvasRenderingContext2D) {
+        constructor(engine : Engine, timeStamp : DOMHighResTimeStamp, ctx: CanvasRenderingContext2D) {
             this._engine = engine;
             this._ctx = ctx;
+            this._timeStamp = timeStamp;
         }
 
         public get canvasWidth() {
@@ -18,6 +20,10 @@ namespace Lightspeed {
 
         public get ctx() {
             return this._ctx;
+        }
+
+        public getFrame(frameLength: number, frameCount: number) {
+            return Math.floor(this._timeStamp / frameLength) % frameCount;
         }
     }
 }

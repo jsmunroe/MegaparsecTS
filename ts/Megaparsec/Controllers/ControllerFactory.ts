@@ -3,6 +3,8 @@
 /// <reference path="Loop.ts" />
 /// <reference path="Wobble.ts" />
 /// <reference path="Target.ts" />
+/// <reference path="Rain.ts" />
+/// <reference path="Flank.ts" />
 
 namespace Megaparsec {
 
@@ -22,6 +24,8 @@ namespace Megaparsec {
             this._controllerTypesByName['Loop'] = Megaparsec.Loop;
             this._controllerTypesByName['Wobble'] = Megaparsec.Wobble;
             this._controllerTypesByName['Target'] = Megaparsec.Target;
+            this._controllerTypesByName['Rain'] = Megaparsec.Rain;
+            this._controllerTypesByName['Flank'] = Megaparsec.Flank;
         }
 
         public static get current() {

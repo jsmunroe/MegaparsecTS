@@ -32,14 +32,14 @@ namespace Megaparsec {
             return new LevelBuilder();
         }
 
-        pushWave(enemyName: string, difficulty: number) : LevelBuilder {
+        pushWave(enemyName: string, level: number) : LevelBuilder {
             if (!Config.agents[enemyName]) {
                 return this;
             }
 
             var enemyConfig = Config.agents[enemyName];
 
-            var wave = new Wave(enemyConfig);
+            var wave = new Wave(enemyConfig, level);
 
             this._waves.push(wave);
 

@@ -139,7 +139,7 @@ namespace Lightspeed {
 
             // Render phase
             var ctx = this.canvas.startRender();
-            var renderContext = new FrameRenderContext(this, ctx);
+            var renderContext = new FrameRenderContext(this, timeStamp, ctx);
 
             for (let i = 0; i < this._elements.length; i++) {
                 const element = this._elements[i];

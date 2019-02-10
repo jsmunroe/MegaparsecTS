@@ -24,7 +24,9 @@ namespace Megaparsec {
             this._hills = context.engine.findFirstElement(i => i instanceof Hills) as Hills;
             this._starField = context.engine.findFirstElement(i => i instanceof StarField) as StarField;
 
-            this._hills.acceleration = new Vector(-5, 1);
+            if (this._hills) {
+                this._hills.acceleration = new Vector(-5, 1);
+            }
 
             this._phases = [
                 Phase.when(context => this._elapsed > 500)
@@ -33,7 +35,9 @@ namespace Megaparsec {
                     }), 
                 Phase.when(context => this._elapsed > 2000)
                     .do(context => {
-                        this._hills.kill();
+                        if (this._hills) {
+                            this._hills.kill();
+                        }
                     }), 
                 Phase.when(context => this._elapsed > 6000)
                     .do(context => {
@@ -43,9 +47,9 @@ namespace Megaparsec {
                 Phase.when(context => this._elapsed > 12000 || this._starField.velocity.x > 0)
                     .do(context => {
                         var hills = new Hills(this._nextLevelColor);
-                        hills.position = this._hills.position;
-                        hills.velocity = this._hills.velocity.withY(y => -y);
-                        hills.acceleration = this._hills.acceleration.scale(-1);
+                        hills.position = new Vector(0, context.canvasBox.height + 100);
+                        hills.velocity = new Vector(-500, -50);
+                        hills.acceleration = new Vector(1, -5);
     
                         context.activate(hills);
                         this._hills = hills;     

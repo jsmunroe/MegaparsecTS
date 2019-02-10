@@ -10,11 +10,11 @@ namespace Megaparsec {
 
         private _alpha: number = 1;
 
-        constructor(origin: Lightspeed.InertialElement) {
+        constructor(origin: Lightspeed.InertialElement, velocity?: Vector) {
             super();
 
             this.position = origin.position;
-            this.velocity = origin.velocity;
+            this.velocity = velocity || origin.velocity;
         }
 
         init(context: Lightspeed.ElementInitContext) : void {

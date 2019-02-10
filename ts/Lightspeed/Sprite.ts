@@ -9,8 +9,14 @@ namespace Lightspeed {
         private _width: number;
         private _height: number;
 
+        private _frameCount: number = 1;
+
         public opacity: number = 1;
         
+        public get frameCount() :number {
+            return this._frameCount;
+        }
+
         public get width() :number {
             return this._width;
         }
@@ -19,11 +25,13 @@ namespace Lightspeed {
             return this._height;
         }
 
-        constructor(imagePath: string, width?: number, height?: number) {
+        constructor(imagePath: string, width?: number, height?: number, frameCount?: number) {
             this._image = new Image();
             this._image.src = imagePath;
 
             var scale = width;
+
+            this._frameCount = frameCount || 1;
 
             if (width && height) {
                 this._width = width;
@@ -51,15 +59,21 @@ namespace Lightspeed {
             this._onLoadCallbacks.push(callback);
         }
 
-        draw(ctx: CanvasRenderingContext2D, position: Vector) {
+        draw(ctx: CanvasRenderingContext2D, position: Vector, frame?: number) {
             if (!this._isLoaded) {
                 return;
             }
 
+            frame = frame || 0;
+
+            var sourceFrameWidth = this._image.width / this._frameCount;
+
             ctx.save();
 
             ctx.globalAlpha = this.opacity;
-            ctx.drawImage(this._image, position.x - this.width / 2, position.y - this.height / 2, this.width, this.height);
+            ctx.drawImage(this._image, 
+                frame * sourceFrameWidth, 0, sourceFrameWidth, this._image.height,
+                position.x - this.width / 2, position.y - this.height / 2, this.width, this.height);
 
             ctx.restore();
         }

@@ -25,7 +25,6 @@ namespace Megaparsec {
             
             this.pushElement(new Background());
             this.pushElement(new StarField(200));
-            this.pushElement(new Hills());
 
             this.loadPlayer();
 
@@ -39,22 +38,7 @@ namespace Megaparsec {
         }
 
         loadTimeline() {
-            var timeLine: Timeline = Timeline.start()
-                .addLevel(level => level
-                    .pushWave('enemy1', 1)
-                    .pushWave('enemy2', 1)
-                    .pushWave('enemy3', 1)
-                    .pushWave('enemy2', 2)
-                    .build())
-                .addEvent(new ChangeLevel(2, '#DD0000'))
-                .addLevel(level => level
-                    .pushWave('enemy2', 1)
-                    .pushWave('enemy1', 1)
-                    .pushWave('enemy3', 1)
-                    .pushWave('enemy2', 2)
-                    .build())
-
-            this.pushElement(timeLine);
+            this.pushElement(TimelinePresets.classic());
         }
 
         pause() {
