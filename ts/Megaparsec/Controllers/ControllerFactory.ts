@@ -32,14 +32,14 @@ namespace Megaparsec {
             return ControllerFactory._current;
         }
 
-        public create(config: any) :Controller {
+        public create(config: any, level: number) :Controller {
             if (!config.name || !this._controllerTypesByName[config.name]) {
-                return new Controller();
+                return new Controller(level);
             }
             
             var type = this._controllerTypesByName[config.name];
 
-            return <Controller>new type(config);
+            return <Controller>new type(config, level);
         }
     }
 }

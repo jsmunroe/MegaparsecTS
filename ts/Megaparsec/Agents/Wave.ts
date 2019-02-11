@@ -27,7 +27,7 @@ namespace Megaparsec {
         }
 
         init(context: Lightspeed.ElementInitContext): void {
-            var controllers: Controller[] = this._config.controllers.map(i => ControllerFactory.current.create(i));
+            var controllers: Controller[] = this._config.controllers.map(i => ControllerFactory.current.create(i, this._level));
 
             var horizontalConstraintTopology : ConstraintToplogy = ConstraintToplogy[<string>this._config.horizontalConstraintTopology];
             var verticalConstraintTopology : ConstraintToplogy = ConstraintToplogy[<string>this._config.verticalConstraintTopology];

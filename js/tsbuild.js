@@ -832,9 +832,9 @@ var Config = {
             controllers: [
                 { name: 'Rain' }
             ],
-            width: 50,
-            height: 50,
-            scaleRange: [0.1, 1],
+            width: 25,
+            height: 25,
+            scaleRange: [0.5, 1],
             images: [
                 './img/asteroid.png',
             ]
@@ -1172,6 +1172,12 @@ var Megaparsec;
         function Enemy(controller, constrainer, sprite, sheild) {
             return _super.call(this, controller, constrainer, sprite, sheild) || this;
         }
+        Enemy.prototype.onCollide = function (context) {
+            if (context.otherElement instanceof Enemy) {
+                return;
+            }
+            _super.prototype.onCollide.call(this, context);
+        };
         return Enemy;
     }(Megaparsec.Agent));
     Megaparsec.Enemy = Enemy;
@@ -1207,6 +1213,7 @@ var Megaparsec;
             ctx.strokeStyle = 'green';
             ctx.beginPath();
             ctx.ellipse(position.x, position.y, width * 0.75, height * 0.75, 0, 0, Math.PI * 2);
+            ctx.fill();
             ctx.stroke();
             ctx.restore();
         };
@@ -1226,13 +1233,16 @@ var Megaparsec;
         };
         EnergySheild.prototype.draw = function (ctx, position, width, height) {
             ctx.save();
-            if (this._strength >= 0) {
+            if (this._strength > 0) {
                 ctx.globalAlpha = this._strength / 5;
                 ctx.lineWidth = 2.0;
                 ctx.strokeStyle = 'blue';
+                ctx.fillStyle = 'blue';
                 ctx.beginPath();
-                ctx.ellipse(position.x, position.y, width, height, 0, 0, Math.PI * 2);
+                ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
                 ctx.stroke();
+                ctx.globalAlpha = 0.1;
+                ctx.fill();
             }
             ctx.restore();
         };
@@ -1258,9 +1268,12 @@ var Megaparsec;
             ctx.globalAlpha = (this._time - this._elapsed) / this._time;
             ctx.lineWidth = 2.0;
             ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
             ctx.beginPath();
-            ctx.ellipse(position.x, position.y, width, height, 0, 0, Math.PI * 2);
+            ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.globalAlpha = 0.1;
+            ctx.fill();
             ctx.restore();
         };
         return TimeSheild;
@@ -1333,7 +1346,8 @@ var Megaparsec;
             return _this;
         }
         Wave.prototype.init = function (context) {
-            var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i); });
+            var _this = this;
+            var controllers = this._config.controllers.map(function (i) { return Megaparsec.ControllerFactory.current.create(i, _this._level); });
             var horizontalConstraintTopology = Megaparsec.ConstraintToplogy[this._config.horizontalConstraintTopology];
             var verticalConstraintTopology = Megaparsec.ConstraintToplogy[this._config.verticalConstraintTopology];
             var constrainer = new Megaparsec.Constrainer(horizontalConstraintTopology, verticalConstraintTopology);
@@ -1430,8 +1444,19 @@ var Megaparsec;
 var Megaparsec;
 (function (Megaparsec) {
     var Controller = /** @class */ (function () {
-        function Controller() {
+        function Controller(level) {
+            this._level = 1;
+            this._maximumVelocityX = 200;
+            this._level = level;
+            this._maximumVelocityX = 200 + 10 * (level - 1);
         }
+        Object.defineProperty(Controller.prototype, "level", {
+            get: function () {
+                return this._level;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Controller.prototype.init = function (agent, constraintBox) {
             agent.controllerProperties.constrain = true;
             // optionally overloaded by extending classes to set given agents initial position.
@@ -1451,8 +1476,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Bounce = /** @class */ (function (_super) {
         __extends(Bounce, _super);
-        function Bounce() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Bounce(config, level) {
+            var _this = _super.call(this, level) || this;
             _this._bounceDistance = 100;
             _this._bounceJolt = 400;
             return _this;
@@ -1483,15 +1508,26 @@ var Megaparsec;
                     properties.velocityAfterPhase0 = agent.velocity;
                     properties.phase = 1;
                 }
+                return;
             }
             if (properties.phase === 1) // bouncing
              {
                 var percentToTarget = (agent.position.y - properties.targetY) / (properties.positionAfterPhase0.y - properties.targetY);
                 agent.velocity = new Vector(properties.targetVelocity.x + (-this._bounceJolt * percentToTarget), percentToTarget * properties.velocityAfterPhase0.y);
                 if (Math.abs(agent.position.y - properties.targetY) < 1) {
+                    agent.acceleration = new Vector(-0.1, 0);
                     properties.constrain = true;
-                    properties.phase = 2; // cruising
+                    properties.phase = 2; // accelerating
                 }
+                return;
+            }
+            if (properties.phase === 2) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return -_this._maximumVelocityX; });
+                    agent.acceleration = new Vector();
+                    properties.phase = 3; // cruising           
+                }
+                return;
             }
         };
         return Bounce;
@@ -1600,8 +1636,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Swoop = /** @class */ (function (_super) {
         __extends(Swoop, _super);
-        function Swoop() {
-            return _super !== null && _super.apply(this, arguments) || this;
+        function Swoop(config, level) {
+            return _super.call(this, level) || this;
         }
         Swoop.prototype.init = function (agent, constraintBox) {
             var properties = agent.controllerProperties;
@@ -1619,14 +1655,24 @@ var Megaparsec;
             agent.velocity = new Lightspeed.Vector(0, properties.initialVelocity.y);
         };
         Swoop.prototype.updateAgent = function (agent, context) {
+            var _this = this;
             var properties = agent.controllerProperties;
             if (properties.phase === 0) // swooping
              {
                 var percentToTarget = (agent.position.y - properties.initialY) / (properties.targetY - properties.initialY);
                 agent.velocity = new Lightspeed.Vector(percentToTarget * properties.targetVelocity.x, (1 - percentToTarget) * properties.initialVelocity.y);
                 if (Math.abs(agent.position.y - properties.targetY) < 1) {
+                    agent.acceleration = new Vector(-0.1, 0);
                     properties.constrain = true;
-                    properties.phase = 1; // cruising
+                    properties.phase = 1; // accelerating
+                }
+                return;
+            }
+            if (properties.phase === 1) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return -_this._maximumVelocityX; });
+                    agent.acceleration = new Vector();
+                    properties.phase = 2; // cruising           
                 }
             }
         };
@@ -1639,8 +1685,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Loop = /** @class */ (function (_super) {
         __extends(Loop, _super);
-        function Loop() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Loop(config, level) {
+            var _this = _super.call(this, level) || this;
             _this._loopRadius = 75;
             return _this;
         }
@@ -1668,6 +1714,7 @@ var Megaparsec;
                     properties.loopCenter = agent.position.withX(function (x) { return x + _this._loopRadius; });
                     properties.phase = 1;
                 }
+                return;
             }
             if (properties.phase === 1) // looping
              {
@@ -1676,10 +1723,34 @@ var Megaparsec;
                 var tangentAngle = angleToLoopCenter + Math.PI * 0.5;
                 agent.velocity = Vector.fromPolar(tangentAngle, velocity);
                 if (agent.velocity.x < 0 && Math.abs(agent.velocity.y) < 20) {
-                    agent.velocity = agent.velocity.withY(function (y) { return 0; });
-                    properties.phase = 2; // Cruising
+                    agent.velocity = new Vector(-agent.velocity.magnitude, 0);
+                    if (agent.velocity.x > -this._maximumVelocityX) {
+                        agent.acceleration = new Vector(-0.1, 0);
+                        properties.phase = 2; // accelerating
+                    }
+                    else {
+                        agent.acceleration = new Vector(0.1, 0);
+                        properties.phase = 3; // decelerating
+                    }
                     properties.constrain = true;
                 }
+                return;
+            }
+            if (properties.phase === 2) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return -_this._maximumVelocityX; });
+                    agent.acceleration = new Vector();
+                    properties.phase = 4; // cruising           
+                }
+                return;
+            }
+            if (properties.phase === 3) { // decelerating 
+                if (agent.velocity.x > -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return -_this._maximumVelocityX; });
+                    agent.acceleration = new Vector();
+                    properties.phase = 4; // cruising           
+                }
+                return;
             }
         };
         return Loop;
@@ -1690,8 +1761,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Wobble = /** @class */ (function (_super) {
         __extends(Wobble, _super);
-        function Wobble() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Wobble(config, level) {
+            var _this = _super.call(this, level) || this;
             _this._amplitude = 50;
             return _this;
         }
@@ -1711,6 +1782,7 @@ var Megaparsec;
             agent.velocity = new Vector(0, properties.initialVelocity.y);
         };
         Wobble.prototype.updateAgent = function (agent, context) {
+            var _this = this;
             var properties = agent.controllerProperties;
             if (properties.phase === 0) { // swooping
                 var percentToTarget = (agent.position.y - properties.initialY) / ((properties.targetY + this._amplitude) - properties.initialY);
@@ -1728,8 +1800,8 @@ var Megaparsec;
                     properties.phase = 2;
                     if (Math.abs(agent.velocity.y) < 150) {
                         agent.velocity = agent.velocity.withY(function (y) { return 0; });
-                        agent.acceleration = new Vector();
-                        properties.phase = 3; // cruising
+                        agent.acceleration = new Vector(-1, 0);
+                        properties.phase = 3; // accelerating
                         properties.constrain = true;
                     }
                 }
@@ -1741,10 +1813,17 @@ var Megaparsec;
                     properties.phase = 1;
                     if (Math.abs(agent.velocity.y) < 150) {
                         agent.velocity = agent.velocity.withY(function (y) { return 0; });
-                        agent.acceleration = new Vector();
-                        properties.phase = 3; // cruising
+                        agent.acceleration = new Vector(-1, 0);
+                        properties.phase = 3; // accelerating
                         properties.constrain = true;
                     }
+                }
+            }
+            else if (properties.phase === 3) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(function (x) { return -_this._maximumVelocityX; });
+                    agent.acceleration = new Vector();
+                    properties.phase = 4; // cruising
                 }
             }
         };
@@ -1756,13 +1835,14 @@ var Megaparsec;
 (function (Megaparsec) {
     var Target = /** @class */ (function (_super) {
         __extends(Target, _super);
-        function Target() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Target(config, level) {
+            var _this = _super.call(this, level) || this;
             _this._lateralVelocity = 50;
             _this._forwardVelocity = 200;
             _this._forwardStep = 50;
             _this._shotSpeed = 1200;
             _this._shotIteration = 500;
+            _this._lateralVelocity = 50 + 50 * (level - 1);
             return _this;
         }
         Target.prototype.init = function (agent, constraintBox) {
@@ -1824,8 +1904,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Rain = /** @class */ (function (_super) {
         __extends(Rain, _super);
-        function Rain() {
-            return _super !== null && _super.apply(this, arguments) || this;
+        function Rain(config, level) {
+            return _super.call(this, level) || this;
         }
         Rain.prototype.init = function (agent, constraintBox) {
             var properties = agent.controllerProperties;
@@ -1841,7 +1921,7 @@ var Megaparsec;
             var properties = agent.controllerProperties;
             if (properties.phase === 0) // raining
              {
-                if (agent.position.y > context.canvasBox.height - 50) {
+                if (agent.position.y > context.canvasBox.height) {
                     agent.kill();
                     context.activate(new Megaparsec.Explosion(agent, new Vector(-200, 0)));
                 }
@@ -1855,8 +1935,8 @@ var Megaparsec;
 (function (Megaparsec) {
     var Flank = /** @class */ (function (_super) {
         __extends(Flank, _super);
-        function Flank() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
+        function Flank(config, level) {
+            var _this = _super.call(this, level) || this;
             _this._lateralVelocity = 50;
             _this._forwardVelocity = 200;
             _this._forwardStep = 50;
@@ -1888,15 +1968,22 @@ var Megaparsec;
                 if (agent.position.y <= properties.target.y) {
                     agent.velocity = agent.velocity.withY(function (y) { return 0; });
                     agent.acceleration = new Vector(-10, 0);
-                    properties.phase = 1; // accelerating
+                    properties.phase = 1;
+                    properties.constrain = true;
                 }
             }
-            if (properties.phase === 1) { // accelerating 
+            if (properties.phase === 1) {
                 if (agent.velocity.x <= -200) {
-                    agent.velocity = new Vector(-200, 0);
-                    agent.acceleration = new Vector();
+                    agent.acceleration = new Vector(-0.1, 0);
                     properties.phase = 2; // cruising
                     properties.constrain = true;
+                }
+            }
+            if (properties.phase === 2) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = new Vector(-this._maximumVelocityX, 0);
+                    agent.acceleration = new Vector();
+                    properties.phase = 3; // cruising
                 }
             }
         };
@@ -1935,12 +2022,12 @@ var Megaparsec;
             enumerable: true,
             configurable: true
         });
-        ControllerFactory.prototype.create = function (config) {
+        ControllerFactory.prototype.create = function (config, level) {
             if (!config.name || !this._controllerTypesByName[config.name]) {
-                return new Megaparsec.Controller();
+                return new Megaparsec.Controller(level);
             }
             var type = this._controllerTypesByName[config.name];
-            return new type(config);
+            return new type(config, level);
         };
         ControllerFactory._current = new ControllerFactory();
         return ControllerFactory;
@@ -1952,7 +2039,7 @@ var Megaparsec;
     var Human = /** @class */ (function (_super) {
         __extends(Human, _super);
         function Human() {
-            var _this = _super.call(this) || this;
+            var _this = _super.call(this, 1) || this;
             _this._maximumVelocity = 500;
             _this._movementAcceleration = 50;
             return _this;
@@ -2297,9 +2384,9 @@ var Megaparsec;
                 Phase.when(function (context) { return _this._elapsed > 12000 || _this._starField.velocity.x > 0; })
                     .do(function (context) {
                     var hills = new Megaparsec.Hills(_this._nextLevelColor);
-                    hills.position = new Vector(0, context.canvasBox.height + 100);
+                    hills.position = new Vector(0, context.canvasBox.height - 50);
                     hills.velocity = new Vector(-500, -50);
-                    hills.acceleration = new Vector(1, -5);
+                    hills.acceleration = new Vector(1, 5);
                     context.activate(hills);
                     _this._hills = hills;
                 }),
@@ -2405,6 +2492,99 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var StartGame = /** @class */ (function (_super) {
+        __extends(StartGame, _super);
+        function StartGame(nextLevelNumber, nextLevelColor) {
+            var _this = _super.call(this) || this;
+            _this._phaseNumber = 0;
+            _this._phases = [];
+            _this._elapsed = 0;
+            _this._startGameMessage = new Megaparsec.Message('Megaparsec', 'Alien Craft Advancing!');
+            _this._nextLevelNumber = nextLevelNumber;
+            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
+            _this._nextLevelColor = nextLevelColor;
+            return _this;
+        }
+        StartGame.prototype.init = function (context) {
+            var _this = this;
+            this._hills = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            if (this._hills) {
+                this._hills.kill();
+            }
+            this._starField.velocity = new Vector(-1000, 0);
+            context.engine.pushElement(this._startGameMessage);
+            this._phases = [
+                Phase.when(function (context) { return _this._elapsed > 4000; })
+                    .do(function (context) {
+                    _this._startGameMessage.kill();
+                    context.activate(_this._nextLevelMessage);
+                    _this._starField.acceleration = new Vector(5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 6000 || _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
+                    hills.position = new Vector(0, context.canvasBox.height + 50);
+                    hills.velocity = new Vector(-500, -50);
+                    hills.acceleration = new Vector(1, -5);
+                    context.activate(hills);
+                    _this._hills = hills;
+                }),
+                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector();
+                    _this._starField.velocity = new Vector();
+                }),
+                Phase.when(function (context) { return _this._hills.position.y <= 0; })
+                    .do(function (context) {
+                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
+                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
+                }),
+                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
+                    .do(function (context) {
+                    _this._hills.acceleration = new Vector();
+                    _this._nextLevelMessage.kill();
+                }),
+            ];
+        };
+        StartGame.prototype.update = function (context) {
+            var phase = this._phases[this._phaseNumber];
+            if (!phase) {
+                this.kill();
+                return;
+            }
+            this._elapsed += context.elapsed;
+            if (phase.act(this, context)) {
+                this._phaseNumber++;
+            }
+        };
+        return StartGame;
+    }(Lightspeed.Element));
+    Megaparsec.StartGame = StartGame;
+    var Phase = /** @class */ (function () {
+        function Phase() {
+        }
+        Phase.when = function (condition) {
+            var phase = new Phase();
+            phase._condition = condition;
+            return phase;
+        };
+        Phase.prototype.do = function (action) {
+            this._action = action;
+            return this;
+        };
+        Phase.prototype.act = function (element, context) {
+            if (!this._condition.bind(element)(context)) {
+                return false;
+            }
+            this._action.bind(element)(context);
+            return true;
+        };
+        return Phase;
+    }());
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
     var Timeline = /** @class */ (function (_super) {
         __extends(Timeline, _super);
         function Timeline() {
@@ -2447,10 +2627,10 @@ var Megaparsec;
         }
         TimelinePresets.classic = function () {
             var timeline = Megaparsec.Timeline.start()
-                .addEvent(new Megaparsec.ChangeLevel(1, '#0d1c01'))
+                .addEvent(new Megaparsec.StartGame(1, '#0d1c01'))
                 .addLevel(function (level) { return level
                 .pushWave('enemy1', 1)
-                .pushWave('enemy2', 1)
+                .pushWave('enemy2', 2)
                 .pushWave('enemy3', 1)
                 .pushWave('enemy2', 2)
                 .pushWave('enemy4', 1)

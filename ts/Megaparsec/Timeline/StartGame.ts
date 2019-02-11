@@ -1,5 +1,5 @@
 namespace Megaparsec {
-    export class ChangeLevel extends Lightspeed.Element {
+    export class StartGame extends Lightspeed.Element {
 
         private _phaseNumber: number = 0;
         private _phases: Phase[] = [];
@@ -8,12 +8,16 @@ namespace Megaparsec {
         private _hills: Hills;
         private _starField: StarField;
 
+        private _startGameMessage: Message;
+
         private _nextLevelNumber: number;
         private _nextLevelMessage: Message;
         private _nextLevelColor: string;
 
         constructor(nextLevelNumber: number, nextLevelColor: string) {
             super();
+
+            this._startGameMessage = new Message('Megaparsec', 'Alien Craft Advancing!');
 
             this._nextLevelNumber = nextLevelNumber;
             this._nextLevelMessage = new Message(`Level ${this._nextLevelNumber}`);
@@ -25,31 +29,25 @@ namespace Megaparsec {
             this._starField = context.engine.findFirstElement(i => i instanceof StarField) as StarField;
 
             if (this._hills) {
-                this._hills.acceleration = new Vector(-5, 1);
+                this._hills.kill();
             }
 
+            this._starField.velocity = new Vector(-1000, 0);
+            context.engine.pushElement(this._startGameMessage);
+
             this._phases = [
-                Phase.when(context => this._elapsed > 500)
+                Phase.when(context => this._elapsed > 4000)
                     .do(context => {
-                        this._starField.acceleration = new Vector(-5, 0);
-                    }), 
-                Phase.when(context => this._elapsed > 2000)
-                    .do(context => {
-                        if (this._hills) {
-                            this._hills.kill();
-                        }
-                    }), 
-                Phase.when(context => this._elapsed > 6000)
-                    .do(context => {
+                        this._startGameMessage.kill();
                         context.activate(this._nextLevelMessage);
                         this._starField.acceleration = new Vector(5, 0);
                     }),
-                Phase.when(context => this._elapsed > 12000 || this._starField.velocity.x > 0)
+                Phase.when(context => this._elapsed > 6000 || this._starField.velocity.x > 0)
                     .do(context => {
                         var hills = new Hills(this._nextLevelColor);
-                        hills.position = new Vector(0, context.canvasBox.height - 50);
+                        hills.position = new Vector(0, context.canvasBox.height + 50);
                         hills.velocity = new Vector(-500, -50);
-                        hills.acceleration = new Vector(1, 5);
+                        hills.acceleration = new Vector(1, -5);
     
                         context.activate(hills);
                         this._hills = hills;     

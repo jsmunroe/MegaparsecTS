@@ -106,9 +106,9 @@ var Config = {
             controllers: [
                 { name:'Rain' }
             ],
-            width: 50,
-            height: 50,
-            scaleRange: [0.1, 1],
+            width: 25,
+            height: 25,
+            scaleRange: [0.5, 1],
             images: [
                 './img/asteroid.png',
             ]

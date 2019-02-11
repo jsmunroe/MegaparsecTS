@@ -4,6 +4,10 @@ namespace Megaparsec {
     export class Loop extends Controller {
         private _loopRadius = 75;
 
+        constructor(config: any, level: number) {
+            super(level);
+        }
+
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
 
@@ -40,7 +44,10 @@ namespace Megaparsec {
 
                     properties.phase = 1;
                 }
+
+                return;
             }
+
             if (properties.phase === 1) // looping
             {
                 var velocity = agent.velocity.magnitude;
@@ -50,11 +57,38 @@ namespace Megaparsec {
                 agent.velocity = Vector.fromPolar(tangentAngle, velocity);
 
                 if (agent.velocity.x < 0 && Math.abs(agent.velocity.y) < 20) {
-                    agent.velocity = agent.velocity.withY(y => 0);
-
-                    properties.phase = 2 // Cruising
+                    agent.velocity = new Vector(-agent.velocity.magnitude, 0);
+                    if (agent.velocity.x > -this._maximumVelocityX) {
+                        agent.acceleration = new Vector(-0.1, 0);
+                        properties.phase = 2 // accelerating
+                    } else {
+                        agent.acceleration = new Vector(0.1, 0);
+                        properties.phase = 3 // decelerating
+                    }
                     properties.constrain = true;
                 }
+
+                return;
+            }
+
+            if (properties.phase === 2) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
+                    agent.acceleration = new Vector();
+                    properties.phase = 4; // cruising           
+                }
+
+                return;
+            }
+
+            if (properties.phase === 3) { // decelerating 
+                if (agent.velocity.x > -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
+                    agent.acceleration = new Vector();
+                    properties.phase = 4; // cruising           
+                }
+
+                return;
             }
         }
     }

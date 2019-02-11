@@ -15,6 +15,7 @@ namespace Megaparsec {
             ctx.strokeStyle = 'green';
             ctx.beginPath();
             ctx.ellipse(position.x, position.y, width * 0.75, height * 0.75, 0, 0, Math.PI * 2);
+            ctx.fill();
             ctx.stroke();
 
             ctx.restore();
@@ -39,13 +40,16 @@ namespace Megaparsec {
         draw(ctx: CanvasRenderingContext2D, position: Vector, width: number, height: number) {
             ctx.save();
 
-            if (this._strength >= 0) {
+            if (this._strength > 0) {
                 ctx.globalAlpha = this._strength / 5;
                 ctx.lineWidth = 2.0;
                 ctx.strokeStyle = 'blue';
+                ctx.fillStyle = 'blue';
                 ctx.beginPath();
-                ctx.ellipse(position.x, position.y, width, height, 0, 0, Math.PI * 2);
+                ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
                 ctx.stroke();
+                ctx.globalAlpha = 0.1;
+                ctx.fill();
             }
 
             ctx.restore();
@@ -76,9 +80,12 @@ namespace Megaparsec {
             ctx.globalAlpha = (this._time - this._elapsed) / this._time;
             ctx.lineWidth = 2.0;
             ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
             ctx.beginPath();
-            ctx.ellipse(position.x, position.y, width, height, 0, 0, Math.PI * 2);
+            ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.globalAlpha = 0.1;
+            ctx.fill();
 
             ctx.restore();
         }

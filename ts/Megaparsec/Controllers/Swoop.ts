@@ -1,5 +1,8 @@
 namespace Megaparsec {
     export class Swoop extends Controller {
+        constructor(config: any, level: number) {
+            super(level);
+        }
 
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
@@ -38,8 +41,19 @@ namespace Megaparsec {
                 );
 
                 if (Math.abs(agent.position.y - properties.targetY) < 1) {
+                    agent.acceleration = new Vector(-0.1, 0);
                     properties.constrain = true;
-                    properties.phase = 1; // cruising
+                    properties.phase = 1; // accelerating
+                }
+
+                return;
+            } 
+            
+            if (properties.phase === 1) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
+                    agent.acceleration = new Vector();
+                    properties.phase = 2; // cruising           
                 }
             }
         }

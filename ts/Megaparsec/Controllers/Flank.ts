@@ -8,6 +8,10 @@ namespace Megaparsec {
         private _shotSpeed: number = 1200;
         private _shotIteration: number = 500;
 
+        constructor(config: any, level: number) {
+            super(level);
+        }
+
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
 
@@ -49,16 +53,24 @@ namespace Megaparsec {
                 if (agent.position.y <= properties.target.y) {
                     agent.velocity = agent.velocity.withY(y => 0);
                     agent.acceleration = new Vector(-10, 0);
-                    properties.phase = 1; // accelerating
+                    properties.phase = 1; 
+                    properties.constrain = true;
                 }
             }
 
-            if (properties.phase === 1) { // accelerating 
+            if (properties.phase === 1) {
                 if (agent.velocity.x <= -200) {
-                    agent.velocity = new Vector(-200, 0);
-                    agent.acceleration = new Vector();
+                    agent.acceleration = new Vector(-0.1, 0);
                     properties.phase = 2; // cruising
                     properties.constrain = true;
+                }                
+            }
+
+            if (properties.phase === 2) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = new Vector(-this._maximumVelocityX, 0);
+                    agent.acceleration = new Vector();
+                    properties.phase = 3; // cruising
                 }                
             }
         }

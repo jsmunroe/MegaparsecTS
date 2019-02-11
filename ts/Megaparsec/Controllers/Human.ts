@@ -4,7 +4,7 @@ namespace Megaparsec {
         private _movementAcceleration: number = 50;
 
         constructor() {
-            super();
+            super(1);
         }
 
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {

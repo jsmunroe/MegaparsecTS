@@ -8,6 +8,12 @@ namespace Megaparsec {
         private _shotSpeed: number = 1200;
         private _shotIteration: number = 500;
 
+        constructor(config: any, level: number) {
+            super(level);
+
+            this._lateralVelocity = 50 + 50 * (level - 1);
+        }
+
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
 

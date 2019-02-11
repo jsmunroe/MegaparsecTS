@@ -2,6 +2,11 @@ namespace Megaparsec {
     export class Wobble extends Controller {
         private _amplitude: number = 50;
 
+        constructor(config: any, level: number) {
+            super(level);
+
+        }
+
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             var properties = agent.controllerProperties;
 
@@ -52,8 +57,8 @@ namespace Megaparsec {
 
                     if (Math.abs(agent.velocity.y) < 150) {
                         agent.velocity = agent.velocity.withY(y => 0);
-                        agent.acceleration = new Vector();
-                        properties.phase = 3 // cruising
+                        agent.acceleration = new Vector(-1, 0);
+                        properties.phase = 3 // accelerating
                         properties.constrain = true;
                     }
                 }
@@ -68,10 +73,16 @@ namespace Megaparsec {
 
                     if (Math.abs(agent.velocity.y) < 150) {
                         agent.velocity = agent.velocity.withY(y => 0);
-                        agent.acceleration = new Vector();
-                        properties.phase = 3 // cruising
+                        agent.acceleration = new Vector(-1, 0);
+                        properties.phase = 3 // accelerating
                         properties.constrain = true;
                     }
+                }
+            } else if (properties.phase === 3) { // accelerating 
+                if (agent.velocity.x <= -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX)
+                    agent.acceleration = new Vector();
+                    properties.phase = 4 // cruising
                 }
             }
         }
