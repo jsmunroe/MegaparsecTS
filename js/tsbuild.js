@@ -1953,8 +1953,8 @@ var Megaparsec;
             var properties = agent.controllerProperties;
             properties.constrain = false;
             properties.phase = 0; // russing in
-            var zoneTop = constraintBox.height * 0.05;
-            var zoneHeight = constraintBox.height - zoneTop * 2;
+            var zoneTop = 0;
+            var zoneHeight = constraintBox.height - 100;
             var zoneLeft = constraintBox.width * 0.5;
             var zoneWidth = constraintBox.width - zoneLeft;
             var targetY = zoneTop + Random.Current.next(zoneHeight);
@@ -2660,7 +2660,7 @@ var Megaparsec;
                 .addElement(new Megaparsec.Hills('#0d1c01'))
                 //.addEvent(new StartGame(1, '#0d1c01'))
                 .addLevel(function (level) { return level
-                .pushWave('enemy3', 1)
+                .pushWave('enemy4', 1)
                 .pushWave('enemy2', 1)
                 .pushWave('enemy3', 1)
                 .pushWave('enemy2', 2)

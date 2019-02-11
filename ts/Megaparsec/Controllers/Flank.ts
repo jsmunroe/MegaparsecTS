@@ -18,8 +18,8 @@ namespace Megaparsec {
             properties.constrain = false;
             properties.phase = 0; // russing in
 
-            var zoneTop = constraintBox.height * 0.05;
-            var zoneHeight = constraintBox.height - zoneTop * 2;
+            var zoneTop = 0;
+            var zoneHeight = constraintBox.height - 100;
 
             var zoneLeft = constraintBox.width * 0.5;
             var zoneWidth = constraintBox.width - zoneLeft;
