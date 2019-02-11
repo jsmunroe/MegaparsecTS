@@ -1,0 +1,10 @@
+Issues
+========
+- Player ship is behind mountains.
+
+Planned Enhancements
+- Increase asteroid difficulty with level.
+- Add asteroid spin.
+- Add background animations that are different per level (e.g., commets, moons, etc).
+- Add foreground ground obsticals
+- Add foreground elements that fire at player.

@@ -1,5 +1,11 @@
 namespace Megaparsec {
     export abstract class Sheild {
+        private _color: string = 'green';
+
+        constructor(color: string) {
+            this._color = color;
+        }
+
         collide(context: Lightspeed.ElementCollisionContext) {
             return true; // true indicates sheild has failed.
         }
@@ -8,25 +14,34 @@ namespace Megaparsec {
             // optionally overloaded by subclasses.
         }
 
+        abstract isActive(): boolean;
+
+        abstract getSheildRatio(): number;
+
         draw(ctx: CanvasRenderingContext2D, position: Vector, width: number, height: number) {
-            ctx.save();
+            if (this.isActive()) {
+                ctx.save();
 
-            ctx.lineWidth = 2.0;
-            ctx.strokeStyle = 'green';
-            ctx.beginPath();
-            ctx.ellipse(position.x, position.y, width * 0.75, height * 0.75, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+                ctx.globalAlpha = this.getSheildRatio();
+                ctx.lineWidth = 2.0;
+                ctx.strokeStyle = this._color;
+                ctx.fillStyle = this._color;
+                ctx.beginPath();
+                ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 0.1;
+                ctx.fill();
 
-            ctx.restore();
+                ctx.restore();
+            }
         }
     }
 
     export class EnergySheild extends Sheild {
         private _strength: number;
 
-        constructor(strength) {
-            super();
+        constructor(strength: number, color?: string) {
+            super(color || 'blue');
 
             this._strength = strength;
         }
@@ -37,57 +52,42 @@ namespace Megaparsec {
             return this._strength < 0;
         }
 
-        draw(ctx: CanvasRenderingContext2D, position: Vector, width: number, height: number) {
-            ctx.save();
-
-            if (this._strength > 0) {
-                ctx.globalAlpha = this._strength / 5;
-                ctx.lineWidth = 2.0;
-                ctx.strokeStyle = 'blue';
-                ctx.fillStyle = 'blue';
-                ctx.beginPath();
-                ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.globalAlpha = 0.1;
-                ctx.fill();
-            }
-
-            ctx.restore();
+        isActive(): boolean {
+            return this._strength > 0;
         }
+
+        getSheildRatio(): number {
+            return Math.min(1, this._strength / 5);
+        }
+
     }
 
     export class TimeSheild extends Sheild {
         private _time: number; 
         private _elapsed: number = 0;
 
-        constructor(time) {
-            super();
+        constructor(time: number, color?: string) {
+            super(color || 'red');
 
             this._time = time;
         }
 
         update(context: Lightspeed.FrameUpdateContext) {
-            this._elapsed = Math.min(this._elapsed + context.elapsed, this._time);
+            this._elapsed = this._elapsed + context.elapsed;
         }
 
         collide(context: Lightspeed.ElementCollisionContext): boolean {
             return this._elapsed >= this._time;
         }
-
-        draw(ctx: CanvasRenderingContext2D, position: Vector, width: number, height: number) {
-            ctx.save();
-
-            ctx.globalAlpha = (this._time - this._elapsed) / this._time;
-            ctx.lineWidth = 2.0;
-            ctx.strokeStyle = 'red';
-            ctx.fillStyle = 'red';
-            ctx.beginPath();
-            ctx.ellipse(position.x, position.y, width * 0.8, height * 0.8, 0, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 0.1;
-            ctx.fill();
-
-            ctx.restore();
+        
+        isActive(): boolean {
+            return this._elapsed < this._time;
         }
+
+        getSheildRatio(): number {
+            return Math.min(1, (this._time - this._elapsed) / this._time);
+        }
+
+
     }
 }

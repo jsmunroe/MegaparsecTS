@@ -2,7 +2,7 @@
 
 namespace Megaparsec {
     export class Loop extends Controller {
-        private _loopRadius = 75;
+        private _loopRadius = 50;
 
         constructor(config: any, level: number) {
             super(level);
@@ -50,7 +50,7 @@ namespace Megaparsec {
 
             if (properties.phase === 1) // looping
             {
-                var velocity = agent.velocity.magnitude;
+                var velocity = agent.velocity.magnitude * 0.99;
                 var angleToLoopCenter = agent.position.angleTo(properties.loopCenter);
                 var tangentAngle = angleToLoopCenter + Math.PI * 0.5;
             
@@ -62,7 +62,7 @@ namespace Megaparsec {
                         agent.acceleration = new Vector(-0.1, 0);
                         properties.phase = 2 // accelerating
                     } else {
-                        agent.acceleration = new Vector(0.1, 0);
+                        agent.acceleration = new Vector(1, 0);
                         properties.phase = 3 // decelerating
                     }
                     properties.constrain = true;

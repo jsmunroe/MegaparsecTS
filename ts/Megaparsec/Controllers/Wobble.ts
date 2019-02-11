@@ -43,45 +43,55 @@ namespace Megaparsec {
                 if (agent.position.y > properties.targetY + this._amplitude) {
                     agent.acceleration = new Vector(0, -this._amplitude);
 
+                    properties.isWobblingDown = true;
                     properties.amplitudeFactor = 1;
                     properties.phase = 1;
                 }
 
-            } else if (properties.phase === 1) { // wobble up
+                return;
 
-                if (agent.position.y < properties.targetY) {
+            } 
+            
+            if (properties.phase === 1) { // wobble
+
+                if (agent.position.y < properties.targetY && !properties.isWobblingDown) {
                     agent.velocity = agent.velocity.withY(y => y * 0.75)
                     agent.acceleration = new Vector(0, this._amplitude);
-
-                    properties.phase = 2;
-
-                    if (Math.abs(agent.velocity.y) < 150) {
-                        agent.velocity = agent.velocity.withY(y => 0);
-                        agent.acceleration = new Vector(-1, 0);
-                        properties.phase = 3 // accelerating
-                        properties.constrain = true;
-                    }
+                    properties.isWobblingDown = true;
                 }
 
-            } else if (properties.phase === 2) { // wobble down
-
-                if (agent.position.y > properties.targetY) {
+                if (agent.position.y >= properties.targetY && properties.isWobblingDown) {
                     agent.velocity = agent.velocity.withY(y => y * 0.75)
                     agent.acceleration = new Vector(0, -this._amplitude);
-
-                    properties.phase = 1;
-
-                    if (Math.abs(agent.velocity.y) < 150) {
-                        agent.velocity = agent.velocity.withY(y => 0);
-                        agent.acceleration = new Vector(-1, 0);
-                        properties.phase = 3 // accelerating
-                        properties.constrain = true;
-                    }
+                    properties.isWobblingDown = false;
                 }
-            } else if (properties.phase === 3) { // accelerating 
-                if (agent.velocity.x <= -this._maximumVelocityX) {
-                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX)
-                    agent.acceleration = new Vector();
+
+                if (Math.abs(agent.velocity.y) < 50 && Math.abs(agent.position.y - properties.targetY) < 5) {
+                    if (agent.velocity.y > 0) {
+                        agent.acceleration = new Vector(1, -0.5);
+                    } else {
+                        agent.acceleration = new Vector(1, 0.5);
+                    }
+                    properties.phase = 2 // accelerating
+                    properties.constrain = true;
+                }
+
+                return;
+            } 
+            
+            if (properties.phase === 2) { // accelerating 
+                if ((agent.acceleration.y > 0 && agent.velocity.y > 0) ||
+                    (agent.acceleration.y <= 0 && agent.velocity.y <= 0)) {
+                        agent.velocity = agent.velocity.withY(y => 0);
+                        agent.acceleration = agent.acceleration.withY(y => 0);
+                    }
+
+                if (agent.velocity.x > -this._maximumVelocityX) {
+                    agent.acceleration = agent.acceleration.withX(x => 0);
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
+                }
+
+                if (!agent.acceleration.x && !agent.acceleration.y) {
                     properties.phase = 4 // cruising
                 }
             }

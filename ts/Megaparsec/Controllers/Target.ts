@@ -11,7 +11,7 @@ namespace Megaparsec {
         constructor(config: any, level: number) {
             super(level);
 
-            this._lateralVelocity = 50 + 50 * (level - 1);
+            this._lateralVelocity = Math.min(50 * level, 500);
         }
 
         init(agent: Agent, constraintBox: Lightspeed.Box) {

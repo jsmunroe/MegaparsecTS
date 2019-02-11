@@ -47,9 +47,9 @@ namespace Megaparsec {
                 Phase.when(context => this._elapsed > 12000 || this._starField.velocity.x > 0)
                     .do(context => {
                         var hills = new Hills(this._nextLevelColor);
-                        hills.position = new Vector(0, context.canvasBox.height - 50);
+                        hills.position = new Vector(0, context.canvasBox.height + 50);
                         hills.velocity = new Vector(-500, -50);
-                        hills.acceleration = new Vector(1, 5);
+                        hills.acceleration = new Vector(1, -5);
     
                         context.activate(hills);
                         this._hills = hills;     
