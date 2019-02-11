@@ -8,6 +8,8 @@ namespace Megaparsec {
         constructor(starCount?: number) {
             super();
 
+            this.zIndex = -1000;
+            
             this._starCount = starCount || 25;
         }
 

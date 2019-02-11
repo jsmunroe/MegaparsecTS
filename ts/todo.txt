@@ -1,6 +1,7 @@
 Issues
 ========
 - Player ship is behind mountains.
+- Flanking enemies start too low.
 
 Planned Enhancements
 - Increase asteroid difficulty with level.

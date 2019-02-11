@@ -3,6 +3,8 @@ namespace Lightspeed {
         private static _nextId: number = 0;
         private _id: number;
 
+        public zIndex: number = 0;
+
         private _isDead: boolean = false;
 
         public get id() {

@@ -2,6 +2,7 @@ namespace Megaparsec {
     export class TimelinePresets {
         public static classic() :Timeline {
             var timeline: Timeline = Timeline.start()
+                .addElement(new Hills('#0d1c01'))
                 //.addEvent(new StartGame(1, '#0d1c01'))
                 .addLevel(level => level
                     .pushWave('enemy3', 1)

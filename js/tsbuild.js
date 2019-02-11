@@ -177,6 +177,7 @@ var Lightspeed;
 (function (Lightspeed) {
     var Element = /** @class */ (function () {
         function Element() {
+            this.zIndex = 0;
             this._isDead = false;
             this._id = Element._nextId++;
         }
@@ -263,6 +264,12 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        ElementInitContext.prototype.activate = function (element) {
+            this._engine.pushElement(element);
+        };
+        ElementInitContext.prototype.delay = function (time, element, action) {
+            this._engine.requestTimeout(time, element, action);
+        };
         return ElementInitContext;
     }());
     Lightspeed.ElementInitContext = ElementInitContext;
@@ -284,6 +291,7 @@ var Lightspeed;
             this._elements.push(element);
             var initContext = new Lightspeed.ElementInitContext(this, this.canvas);
             element.init(initContext);
+            this._elements.sort(function (a, b) { return a.zIndex - b.zIndex; });
         };
         Engine.prototype.removeElement = function (element) {
             var index = this._elements.indexOf(element);
@@ -2151,7 +2159,9 @@ var Megaparsec;
     var Background = /** @class */ (function (_super) {
         __extends(Background, _super);
         function Background() {
-            return _super !== null && _super.apply(this, arguments) || this;
+            var _this = _super.call(this) || this;
+            _this.zIndex = -1100;
+            return _this;
         }
         Background.prototype.render = function (context) {
             context.ctx.fillRect(0, 0, context.canvasWidth, context.canvasHeight);
@@ -2175,6 +2185,7 @@ var Megaparsec;
             if (baseColor) {
                 _this._baseColor = baseColor;
             }
+            _this.zIndex = -100;
             _this.velocity = new Vector(-200, 0);
             return _this;
         }
@@ -2282,6 +2293,7 @@ var Megaparsec;
         function StarField(starCount) {
             var _this = _super.call(this) || this;
             _this._stars = [];
+            _this.zIndex = -1000;
             _this._starCount = starCount || 25;
             return _this;
         }
@@ -2340,6 +2352,23 @@ var Megaparsec;
         return StarField;
     }(Lightspeed.InertialElement));
     Megaparsec.StarField = StarField;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var AddElement = /** @class */ (function (_super) {
+        __extends(AddElement, _super);
+        function AddElement(element) {
+            var _this = _super.call(this) || this;
+            _this._element = element;
+            return _this;
+        }
+        AddElement.prototype.init = function (context) {
+            context.activate(this._element);
+            this.kill();
+        };
+        return AddElement;
+    }(Lightspeed.Element));
+    Megaparsec.AddElement = AddElement;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -2598,6 +2627,10 @@ var Megaparsec;
             this._events.push(buildLevel(Megaparsec.LevelBuilder.start()));
             return this;
         };
+        Timeline.prototype.addElement = function (element) {
+            this._events.push(new Megaparsec.AddElement(element));
+            return this;
+        };
         Timeline.prototype.addEvent = function (event) {
             this._events.push(event);
             return this;
@@ -2624,6 +2657,7 @@ var Megaparsec;
         }
         TimelinePresets.classic = function () {
             var timeline = Megaparsec.Timeline.start()
+                .addElement(new Megaparsec.Hills('#0d1c01'))
                 //.addEvent(new StartGame(1, '#0d1c01'))
                 .addLevel(function (level) { return level
                 .pushWave('enemy3', 1)

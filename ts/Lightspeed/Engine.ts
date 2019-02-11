@@ -22,6 +22,8 @@ namespace Lightspeed {
 
             var initContext = new ElementInitContext(this, this.canvas);
             element.init(initContext);
+
+            this._elements.sort((a, b) => a.zIndex - b.zIndex);
         }
 
         public removeElement(element: Element) {

@@ -14,6 +14,12 @@ namespace Megaparsec {
             return this;
         }
 
+        addElement(element: Lightspeed.Element): Timeline {
+            this._events.push(new AddElement(element));
+
+            return this;
+        }
+
         addEvent(event: Lightspeed.Element): Timeline {
             this._events.push(event);
 

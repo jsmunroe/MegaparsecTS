@@ -16,6 +16,8 @@ namespace Megaparsec {
                 this._baseColor = baseColor;
             }
 
+            this.zIndex = -100;
+            
             this.velocity = new Vector(-200, 0);
         }
 
