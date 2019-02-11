@@ -16,7 +16,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // russing in
+            properties.phase = 'rushing in';
 
             var zoneTop = 0;
             var zoneHeight = constraintBox.height - 100;
@@ -42,7 +42,7 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) { // russing in
+            if (properties.phase === 'rushing in') {
             
                 var percentToTarget = (properties.target.x - agent.position.x) / (properties.target.x - properties.initial.x)
                 agent.velocity = new Vector(
@@ -53,26 +53,34 @@ namespace Megaparsec {
                 if (agent.position.y <= properties.target.y) {
                     agent.velocity = agent.velocity.withY(y => 0);
                     agent.acceleration = new Vector(-10, 0);
-                    properties.phase = 1; 
+                    properties.phase = 'reversing'; 
                     properties.constrain = true;
                 }
+
+                return;
             }
 
-            if (properties.phase === 1) {
+            if (properties.phase === 'reversing') {
                 if (agent.velocity.x <= -200) {
                     agent.acceleration = new Vector(-0.1, 0);
-                    properties.phase = 2; // cruising
+                    properties.phase = 'accelerating';
                     properties.constrain = true;
-                }                
+                }       
+                
+                return;
             }
 
-            if (properties.phase === 2) { // accelerating 
+            if (properties.phase === 'accelerating') {
                 if (agent.velocity.x <= -this._maximumVelocityX) {
                     agent.velocity = new Vector(-this._maximumVelocityX, 0);
                     agent.acceleration = new Vector();
-                    properties.phase = 3; // cruising
-                }                
+                    properties.phase = 'cruising';
+                }   
+                
+                return;
             }
+
+            super.cruise(agent, context);
         }
     }
 }

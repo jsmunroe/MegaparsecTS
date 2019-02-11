@@ -80,7 +80,7 @@ var Config = {
         enemy4: {
             waveMode: 'OffsetWaveMode',
             horizontalConstraintTopology: 'Wrap', 
-            virticalConstraintTopology: 'Block', 
+            verticalConstraintTopology: 'Block', 
             controllers: [
                 { name:'Flank' }
             ],

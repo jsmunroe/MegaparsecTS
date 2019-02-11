@@ -12,7 +12,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // swooping
+            properties.phase = 'swooping';
 
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
@@ -36,19 +36,19 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) // swooping
+            if (properties.phase === 'swooping')
             {
                 if (agent.position.y > properties.targetY) {
 
                     properties.loopCenter = agent.position.withX(x => x + this._loopRadius);
 
-                    properties.phase = 1;
+                    properties.phase = 'looping';
                 }
 
                 return;
             }
 
-            if (properties.phase === 1) // looping
+            if (properties.phase === 'looping')
             {
                 var velocity = agent.velocity.magnitude * 0.99;
                 var angleToLoopCenter = agent.position.angleTo(properties.loopCenter);
@@ -60,10 +60,10 @@ namespace Megaparsec {
                     agent.velocity = new Vector(-agent.velocity.magnitude, 0);
                     if (agent.velocity.x > -this._maximumVelocityX) {
                         agent.acceleration = new Vector(-0.1, 0);
-                        properties.phase = 2 // accelerating
+                        properties.phase = 'accelerating'
                     } else {
                         agent.acceleration = new Vector(1, 0);
-                        properties.phase = 3 // decelerating
+                        properties.phase = 'decelerating'
                     }
                     properties.constrain = true;
                 }
@@ -71,25 +71,27 @@ namespace Megaparsec {
                 return;
             }
 
-            if (properties.phase === 2) { // accelerating 
+            if (properties.phase === 'accelerating') { 
                 if (agent.velocity.x <= -this._maximumVelocityX) {
                     agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
                     agent.acceleration = new Vector();
-                    properties.phase = 4; // cruising           
+                    properties.phase = 'cruising';          
                 }
 
                 return;
             }
 
-            if (properties.phase === 3) { // decelerating 
+            if (properties.phase === 'decelerating') { 
                 if (agent.velocity.x > -this._maximumVelocityX) {
                     agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
                     agent.acceleration = new Vector();
-                    properties.phase = 4; // cruising           
+                    properties.phase = 'cruising';       
                 }
 
                 return;
             }
+
+            super.cruise(agent, context);
         }
     }
 }

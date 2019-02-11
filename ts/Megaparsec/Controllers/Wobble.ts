@@ -11,7 +11,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // swooping
+            properties.phase = 'swooping';
 
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
@@ -35,7 +35,7 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) { // swooping
+            if (properties.phase === 'swooping') {
             
                 var percentToTarget = (agent.position.y - properties.initialY) / ((properties.targetY + this._amplitude) - properties.initialY);
                 agent.velocity = agent.velocity.withX(x => percentToTarget * properties.targetVelocity.x);
@@ -45,14 +45,14 @@ namespace Megaparsec {
 
                     properties.isWobblingDown = true;
                     properties.amplitudeFactor = 1;
-                    properties.phase = 1;
+                    properties.phase = 'wobble';
                 }
 
                 return;
 
             } 
             
-            if (properties.phase === 1) { // wobble
+            if (properties.phase === 'wobble') {
 
                 if (agent.position.y < properties.targetY && !properties.isWobblingDown) {
                     agent.velocity = agent.velocity.withY(y => y * 0.75)
@@ -72,14 +72,14 @@ namespace Megaparsec {
                     } else {
                         agent.acceleration = new Vector(1, 0.5);
                     }
-                    properties.phase = 2 // accelerating
+                    properties.phase = 'accelerating';
                     properties.constrain = true;
                 }
 
                 return;
             } 
             
-            if (properties.phase === 2) { // accelerating 
+            if (properties.phase === 'accelerating') {
                 if ((agent.acceleration.y > 0 && agent.velocity.y > 0) ||
                     (agent.acceleration.y <= 0 && agent.velocity.y <= 0)) {
                         agent.velocity = agent.velocity.withY(y => 0);
@@ -92,9 +92,13 @@ namespace Megaparsec {
                 }
 
                 if (!agent.acceleration.x && !agent.acceleration.y) {
-                    properties.phase = 4 // cruising
+                    properties.phase = 'cruising' // cruising
                 }
+
+                return;
             }
+
+            super.cruise(agent, context);
         }
     }
 }

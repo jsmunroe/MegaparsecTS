@@ -8,7 +8,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // swooping
+            properties.phase = 'swooping';
 
             var zoneLeft = constraintBox.width * 0.7;
             var zoneWidth = constraintBox.width - zoneLeft;
@@ -32,7 +32,7 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) // swooping
+            if (properties.phase === 'swooping')
             {
                 var percentToTarget = (agent.position.y - properties.initialY) / (properties.targetY - properties.initialY);
                 agent.velocity = new Lightspeed.Vector(
@@ -43,19 +43,23 @@ namespace Megaparsec {
                 if (Math.abs(agent.position.y - properties.targetY) < 1) {
                     agent.acceleration = new Vector(-0.1, 0);
                     properties.constrain = true;
-                    properties.phase = 1; // accelerating
+                    properties.phase = 'accelerating';
                 }
 
                 return;
             } 
             
-            if (properties.phase === 1) { // accelerating 
+            if (properties.phase === 'accelerating') {
                 if (agent.velocity.x <= -this._maximumVelocityX) {
                     agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
                     agent.acceleration = new Vector();
-                    properties.phase = 2; // cruising           
+                    properties.phase = 'cruising'         
                 }
+
+                return;
             }
+
+            super.cruise(agent, context);
         }
     }
 }

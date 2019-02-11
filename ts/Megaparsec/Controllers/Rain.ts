@@ -1,6 +1,5 @@
 namespace Megaparsec {
     export class Rain extends Controller {
-
         constructor(config: any, level: number) {
             super(level);
         }
@@ -9,7 +8,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // raining
+            properties.phase = 'raining';
 
             var zoneLeft = constraintBox.width * 0.1;
             var zoneWidth = constraintBox.width - zoneLeft;
@@ -25,7 +24,7 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) // raining
+            if (properties.phase === 'raining')
             {
                 if (agent.position.y > context.canvasBox.height) {
                     agent.kill();
@@ -33,6 +32,5 @@ namespace Megaparsec {
                 }
             }
         }
-
     }
 }

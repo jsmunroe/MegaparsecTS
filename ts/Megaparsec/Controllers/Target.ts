@@ -18,7 +18,7 @@ namespace Megaparsec {
             var properties = agent.controllerProperties;
 
             properties.constrain = false;
-            properties.phase = 0; // moving forward
+            properties.phase = 'moving forward';
             properties.lastFireElapsed = 0;
             properties.targetX = constraintBox.width - 50;
 
@@ -37,16 +37,16 @@ namespace Megaparsec {
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
             var properties = agent.controllerProperties;
             
-            if (properties.phase === 0) { // moving forward
+            if (properties.phase === 'moving forward') {
             
                 if (agent.position.x < properties.targetX) {
                     agent.velocity = agent.velocity.withX(x => 0);
-                    properties.phase = 1; // targetting
+                    properties.phase = 'targetting';
                     return;
                 }
             }
 
-            if (properties.phase === 1) { // targetting 
+            if (properties.phase === 'targetting') {  
             
                 var target :Player = <Player>context.engine.findFirstElement(i => i instanceof Player);
 
@@ -66,7 +66,7 @@ namespace Megaparsec {
 
                         agent.velocity = new Vector(-this._forwardVelocity, 0);
                         properties.targetX = agent.position.x - this._forwardStep;
-                        properties.phase = 0; // moving forward
+                        properties.phase = 'moving forward';
 
                         return;
                     }

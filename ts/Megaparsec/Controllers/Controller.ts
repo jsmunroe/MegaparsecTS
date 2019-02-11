@@ -9,12 +9,11 @@ namespace Megaparsec {
 
         constructor(level: number) {
             this._level = level;
-            this._maximumVelocityX = 200 + 10 * (level - 1);
+            this._maximumVelocityX = Math.min(500, 200 + 10 * (level - 1));
         }
 
         init(agent: Agent, constraintBox: Lightspeed.Box) {
             agent.controllerProperties.constrain = true;
-
 
             // optionally overloaded by extending classes to set given agents initial position.
         }
@@ -24,7 +23,24 @@ namespace Megaparsec {
         }
 
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {
-            // optionally overloaded by extending classes to update the given agent.
+
+        }
+
+        cruise(agent: Agent, context: Lightspeed.FrameUpdateContext) {
+            var properties = agent.controllerProperties;
+            properties.constraint = true;
+
+
+            if (!properties.cruiseVelocity) {
+                properties.cruiseVelocity = agent.velocity;
+            }
+
+            var drift = 0.2;
+
+            agent.acceleration = new Vector(
+                -drift + Random.Current.next(drift * 2),
+                -drift + Random.Current.next(drift * 2)
+            )
         }
     }
 }
