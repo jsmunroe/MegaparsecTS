@@ -1,5 +1,7 @@
+/// <reference path="Atmosphere.ts" />
+
 namespace Megaparsec {
-    export class Comets extends BackgroundAnimation {
+    export class Comets extends Atmosphere {
         private _comets: Comet[] = [];
 
         constructor() {

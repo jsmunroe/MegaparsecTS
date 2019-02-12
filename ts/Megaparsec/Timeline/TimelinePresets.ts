@@ -2,10 +2,10 @@ namespace Megaparsec {
     export class TimelinePresets {
         public static classic() :Timeline {
             var timeline: Timeline = Timeline.start()
-                .addElement(new Hills('#0d1c01'))
-                //.addEvent(new StartGame(1, '#0d1c01'))
-                .addElement(new Comets())
+                //.addElement(new Hills('#0d1c01'))
+                .addEvent(new StartGame(1, '#0d1c01'))
                 .addLevel(level => level
+                    .addElement(new Lightning('skyblue'))
                     .addWave('enemy1', 1)
                     .addWave('enemy2', 1)
                     .addWave('enemy3', 1)
@@ -14,6 +14,7 @@ namespace Megaparsec {
                     .addWave('asteroid', 3))
                 .addEvent(new ChangeLevel(2, '#DD0000'))
                 .addLevel(level => level
+                    .addElement(new Comets())
                     .addWave('enemy1', 2)
                     .addWave('enemy2', 2)
                     .addWave('enemy3', 2)

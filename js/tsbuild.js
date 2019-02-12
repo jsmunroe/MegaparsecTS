@@ -2137,15 +2137,16 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
-    var BackgroundAnimation = /** @class */ (function (_super) {
-        __extends(BackgroundAnimation, _super);
-        function BackgroundAnimation() {
+    var Atmosphere = /** @class */ (function (_super) {
+        __extends(Atmosphere, _super);
+        function Atmosphere() {
             return _super !== null && _super.apply(this, arguments) || this;
         }
-        return BackgroundAnimation;
+        return Atmosphere;
     }(Lightspeed.Element));
-    Megaparsec.BackgroundAnimation = BackgroundAnimation;
+    Megaparsec.Atmosphere = Atmosphere;
 })(Megaparsec || (Megaparsec = {}));
+/// <reference path="Atmosphere.ts" />
 var Megaparsec;
 (function (Megaparsec) {
     var Comets = /** @class */ (function (_super) {
@@ -2217,7 +2218,7 @@ var Megaparsec;
             });
         };
         return Comets;
-    }(Megaparsec.BackgroundAnimation));
+    }(Megaparsec.Atmosphere));
     Megaparsec.Comets = Comets;
     var Comet = /** @class */ (function () {
         function Comet() {
@@ -2288,6 +2289,92 @@ var Megaparsec;
         return Explosion;
     }(Lightspeed.InertialElement));
     Megaparsec.Explosion = Explosion;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="Atmosphere.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var Lightning = /** @class */ (function (_super) {
+        __extends(Lightning, _super);
+        function Lightning(color) {
+            var _this = _super.call(this) || this;
+            _this._strikeSegments = [];
+            _this._color = color || 'white';
+            _this.zIndex = -900;
+            return _this;
+        }
+        Lightning.prototype.update = function (context) {
+            if (Random.Current.nextInt(250) === 0) {
+                this.addRandomStrike(context.canvasBox);
+            }
+            for (var i = 0; i < this._strikeSegments.length; i++) {
+                var strikeSegment = this._strikeSegments[i];
+                strikeSegment.elapsedTime += context.elapsed;
+            }
+        };
+        Lightning.prototype.render = function (context) {
+            var ctx = context.ctx;
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = this._color;
+            for (var i = 0; i < this._strikeSegments.length; i++) {
+                var strikeSegment = this._strikeSegments[i];
+                ctx.globalAlpha = 1 - Math.min(1, strikeSegment.elapsedTime / strikeSegment.timeToLive);
+                ctx.beginPath();
+                ctx.moveTo(strikeSegment.start.x, strikeSegment.start.y);
+                ctx.lineTo(strikeSegment.end.x, strikeSegment.end.y);
+                if (ctx.globalAlpha > 0.9) {
+                    ctx.fillStyle = this._color;
+                    ctx.fillRect(0, 0, context.canvasWidth, context.canvasHeight);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        };
+        Lightning.prototype.addRandomStrike = function (canvasBox) {
+            this._strikeSegments = [];
+            var startX = Random.Current.next(canvasBox.width);
+            var startY = -10;
+            var position = new Vector(startX, startY);
+            while (position.y < canvasBox.height) {
+                var strikeSegment = this.addRandomStrikeSegment(position);
+                position = strikeSegment.end;
+                this._strikeSegments.push(strikeSegment);
+            }
+            var branchCount = Random.Current.nextInt(10);
+            for (var i = 0; i < branchCount; i++) {
+                position = Random.Current.pick(this._strikeSegments).end;
+                var segmentCount = Random.Current.nextInt(5);
+                for (var j = 0; j < segmentCount; j++) {
+                    var strikeSegment = this.addRandomStrikeSegment(position);
+                    position = strikeSegment.end;
+                    this._strikeSegments.push(strikeSegment);
+                }
+            }
+        };
+        Lightning.prototype.addRandomStrikeSegment = function (position) {
+            var magnitude = Random.Current.getBetween(10, 50);
+            var angle = Random.Current.getBetween(Math.PI * 0.1, Math.PI * 0.9);
+            var strikeVector = Vector.fromPolar(angle, magnitude);
+            var newPosition = position.add(strikeVector);
+            return {
+                start: position,
+                end: newPosition,
+                timeToLive: 750,
+                elapsedTime: 0
+            };
+        };
+        return Lightning;
+    }(Megaparsec.Atmosphere));
+    Megaparsec.Lightning = Lightning;
+    var StrikeSegment = /** @class */ (function () {
+        function StrikeSegment() {
+            this.start = new Vector();
+            this.end = new Vector();
+            this.timeToLive = 750;
+            this.elapsedTime = 0;
+        }
+        return StrikeSegment;
+    }());
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -2630,6 +2717,11 @@ var Megaparsec;
             this._elements.push(element);
             return this;
         };
+        Level.prototype.init = function (context) {
+            this._elements.forEach(function (element) {
+                context.activate(element);
+            });
+        };
         Level.prototype.update = function (context) {
             if (!this._currentWave || this._currentWave.isDead) {
                 if (!this._waves.length) {
@@ -2787,10 +2879,10 @@ var Megaparsec;
         }
         TimelinePresets.classic = function () {
             var timeline = Megaparsec.Timeline.start()
-                .addElement(new Megaparsec.Hills('#0d1c01'))
-                //.addEvent(new StartGame(1, '#0d1c01'))
-                .addElement(new Megaparsec.Comets())
+                //.addElement(new Hills('#0d1c01'))
+                .addEvent(new Megaparsec.StartGame(1, '#0d1c01'))
                 .addLevel(function (level) { return level
+                .addElement(new Megaparsec.Lightning('skyblue'))
                 .addWave('enemy1', 1)
                 .addWave('enemy2', 1)
                 .addWave('enemy3', 1)
@@ -2799,6 +2891,7 @@ var Megaparsec;
                 .addWave('asteroid', 3); })
                 .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
                 .addLevel(function (level) { return level
+                .addElement(new Megaparsec.Comets())
                 .addWave('enemy1', 2)
                 .addWave('enemy2', 2)
                 .addWave('enemy3', 2)

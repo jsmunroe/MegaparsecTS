@@ -30,6 +30,12 @@ namespace Megaparsec {
             return this;
         }
 
+        init(context: Lightspeed.ElementInitContext) : void {
+            this._elements.forEach(element => {
+                context.activate(element);
+            });
+        }
+
         update(context: Lightspeed.FrameUpdateContext): void {
             if (!this._currentWave || this._currentWave.isDead) {
                 if (!this._waves.length) {
