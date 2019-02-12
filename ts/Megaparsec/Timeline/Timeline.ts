@@ -8,8 +8,8 @@ namespace Megaparsec {
             return new Timeline();
         }
 
-        addLevel(buildLevel: (levelBuilder: LevelBuilder) => Level): Timeline {
-            this._events.push(buildLevel(LevelBuilder.start()));
+        addLevel(buildLevel: (levelBuilder: Level) => Level): Timeline {
+            this._events.push(buildLevel(Level.start()));
 
             return this;
         }

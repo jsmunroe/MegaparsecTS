@@ -2,37 +2,15 @@ namespace Megaparsec {
     export class Level extends Lightspeed.Element {
         private _waves: Wave[] = [];
 
+        private _elements: Lightspeed.Element[] = [];
+
         private _currentWave: Wave;
 
-        constructor(waves: Wave[]) {
-            super();
-
-            this._waves = waves;
+        static start() : Level {
+            return new Level();
         }
 
-        update(context: Lightspeed.FrameUpdateContext): void {
-            if (!this._currentWave || this._currentWave.isDead) {
-                if (!this._waves.length) {
-                    this.kill();
-                    return;
-                }
-
-                var nextWave = this._waves.shift();
-                context.activate(nextWave);
-                this._currentWave = nextWave;
-            }
-        }
-    }
-
-    export class LevelBuilder {
-
-        private _waves: Wave[] = [];
-
-        static start() : LevelBuilder {
-            return new LevelBuilder();
-        }
-
-        pushWave(enemyName: string, level: number) : LevelBuilder {
+        addWave(enemyName: string, level: number) : Level {
             if (!Config.agents[enemyName]) {
                 return this;
             }
@@ -46,8 +24,24 @@ namespace Megaparsec {
             return this;
         }
 
-        build() :Level {
-            return new Level(this._waves);
+        addElement(element: Lightspeed.Element) : Level {
+            this._elements.push(element);
+
+            return this;
+        }
+
+        update(context: Lightspeed.FrameUpdateContext): void {
+            if (!this._currentWave || this._currentWave.isDead) {
+                if (!this._waves.length) {
+                    this.kill();
+                    this._elements.forEach(i => i.kill());
+                    return;
+                }
+
+                var nextWave = this._waves.shift();
+                context.activate(nextWave);
+                this._currentWave = nextWave;
+            }
         }
     }
 }

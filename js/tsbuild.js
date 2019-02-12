@@ -725,6 +725,9 @@ var Lightspeed;
         Vector.prototype.distanceTo = function (other) {
             return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
         };
+        Vector.prototype.vectorTo = function (other) {
+            return new Vector(other.x - this.x, other.y - this.y);
+        };
         Vector.fromPolar = function (argument, magnitude) {
             return new Vector(Math.cos(argument) * magnitude, Math.sin(argument) * magnitude);
         };
@@ -2134,6 +2137,104 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
+    var BackgroundAnimation = /** @class */ (function (_super) {
+        __extends(BackgroundAnimation, _super);
+        function BackgroundAnimation() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        return BackgroundAnimation;
+    }(Lightspeed.Element));
+    Megaparsec.BackgroundAnimation = BackgroundAnimation;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Comets = /** @class */ (function (_super) {
+        __extends(Comets, _super);
+        function Comets() {
+            var _this = _super.call(this) || this;
+            _this._comets = [];
+            _this.zIndex = -900;
+            return _this;
+        }
+        Comets.prototype.update = function (context) {
+            if (Random.Current.nextInt(100) === 0) {
+                this.addRandomComet(context.canvasBox);
+            }
+            for (var i = 0; i < this._comets.length; i++) {
+                var comet = this._comets[i];
+                comet.elapsedTime += context.elapsed;
+                if (comet.elapsedTime > comet.timeToLive) {
+                    comet.isAlive = false;
+                }
+                comet.position = comet.position.add(comet.velocity.scale(context.delta));
+                if (comet.isAlive) {
+                    comet.tailStart = comet.position;
+                }
+                if (comet.position.distanceTo(comet.tailEnd) > comet.tailLength) {
+                    var tailEndVector = Vector.fromPolar(comet.velocity.scale(-1).argument, comet.tailLength);
+                    comet.tailEnd = comet.position.add(tailEndVector);
+                }
+                var tailVector = comet.tailEnd.vectorTo(comet.tailStart);
+                if (!comet.isAlive || comet.tailEnd.distanceTo(comet.tailStart) < 5) {
+                    var index = this._comets.indexOf(comet);
+                    if (index !== -1) {
+                        this._comets.splice(index, 1);
+                    }
+                }
+            }
+        };
+        Comets.prototype.render = function (context) {
+            var ctx = context.ctx;
+            ctx.save();
+            for (var i = 0; i < this._comets.length; i++) {
+                var comet = this._comets[i];
+                var gradient = ctx.createLinearGradient(comet.tailEnd.x, comet.tailEnd.y, comet.position.x, comet.position.y);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
+                ctx.strokeStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(comet.tailEnd.x, comet.tailEnd.y);
+                ctx.lineTo(comet.tailStart.x, comet.tailStart.y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        };
+        Comets.prototype.addRandomComet = function (canvasBox) {
+            var startX = Random.Current.next(canvasBox.width);
+            var startY = Random.Current.next(canvasBox.height);
+            var angle = Random.Current.getBetween(0, Math.PI);
+            var position = new Vector(startX, startY);
+            var velocity = Vector.fromPolar(angle, 500);
+            this._comets.push({
+                isAlive: true,
+                timeToLive: 750,
+                elapsedTime: 0,
+                position: position,
+                velocity: velocity,
+                tailStart: position,
+                tailEnd: position,
+                tailLength: 100,
+            });
+        };
+        return Comets;
+    }(Megaparsec.BackgroundAnimation));
+    Megaparsec.Comets = Comets;
+    var Comet = /** @class */ (function () {
+        function Comet() {
+            this.isAlive = true;
+            this.timeToLive = 750;
+            this.elapsedTime = 0;
+            this.position = new Vector();
+            this.velocity = new Vector();
+            this.tailStart = new Vector();
+            this.tailEnd = new Vector();
+            this.tailLength = 25;
+        }
+        return Comet;
+    }());
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
     var Explosion = /** @class */ (function (_super) {
         __extends(Explosion, _super);
         function Explosion(origin, velocity) {
@@ -2507,16 +2608,33 @@ var Megaparsec;
 (function (Megaparsec) {
     var Level = /** @class */ (function (_super) {
         __extends(Level, _super);
-        function Level(waves) {
-            var _this = _super.call(this) || this;
+        function Level() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
             _this._waves = [];
-            _this._waves = waves;
+            _this._elements = [];
             return _this;
         }
+        Level.start = function () {
+            return new Level();
+        };
+        Level.prototype.addWave = function (enemyName, level) {
+            if (!Config.agents[enemyName]) {
+                return this;
+            }
+            var enemyConfig = Config.agents[enemyName];
+            var wave = new Megaparsec.Wave(enemyConfig, level);
+            this._waves.push(wave);
+            return this;
+        };
+        Level.prototype.addElement = function (element) {
+            this._elements.push(element);
+            return this;
+        };
         Level.prototype.update = function (context) {
             if (!this._currentWave || this._currentWave.isDead) {
                 if (!this._waves.length) {
                     this.kill();
+                    this._elements.forEach(function (i) { return i.kill(); });
                     return;
                 }
                 var nextWave = this._waves.shift();
@@ -2527,28 +2645,6 @@ var Megaparsec;
         return Level;
     }(Lightspeed.Element));
     Megaparsec.Level = Level;
-    var LevelBuilder = /** @class */ (function () {
-        function LevelBuilder() {
-            this._waves = [];
-        }
-        LevelBuilder.start = function () {
-            return new LevelBuilder();
-        };
-        LevelBuilder.prototype.pushWave = function (enemyName, level) {
-            if (!Config.agents[enemyName]) {
-                return this;
-            }
-            var enemyConfig = Config.agents[enemyName];
-            var wave = new Megaparsec.Wave(enemyConfig, level);
-            this._waves.push(wave);
-            return this;
-        };
-        LevelBuilder.prototype.build = function () {
-            return new Level(this._waves);
-        };
-        return LevelBuilder;
-    }());
-    Megaparsec.LevelBuilder = LevelBuilder;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -2658,7 +2754,7 @@ var Megaparsec;
             return new Timeline();
         };
         Timeline.prototype.addLevel = function (buildLevel) {
-            this._events.push(buildLevel(Megaparsec.LevelBuilder.start()));
+            this._events.push(buildLevel(Megaparsec.Level.start()));
             return this;
         };
         Timeline.prototype.addElement = function (element) {
@@ -2693,32 +2789,30 @@ var Megaparsec;
             var timeline = Megaparsec.Timeline.start()
                 .addElement(new Megaparsec.Hills('#0d1c01'))
                 //.addEvent(new StartGame(1, '#0d1c01'))
+                .addElement(new Megaparsec.Comets())
                 .addLevel(function (level) { return level
-                //.pushWave('enemy1', 1)
-                //.pushWave('enemy2', 1)
-                //.pushWave('enemy3', 1)
-                //.pushWave('enemy2', 2)
-                //.pushWave('enemy4', 1)
-                //.pushWave('asteroid', 3)
-                .build(); })
+                .addWave('enemy1', 1)
+                .addWave('enemy2', 1)
+                .addWave('enemy3', 1)
+                .addWave('enemy2', 2)
+                .addWave('enemy4', 1)
+                .addWave('asteroid', 3); })
                 .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
                 .addLevel(function (level) { return level
-                .pushWave('enemy1', 2)
-                .pushWave('enemy2', 2)
-                .pushWave('enemy3', 2)
-                .pushWave('enemy2', 3)
-                .pushWave('enemy4', 2)
-                .pushWave('asteroid', 2)
-                .build(); })
+                .addWave('enemy1', 2)
+                .addWave('enemy2', 2)
+                .addWave('enemy3', 2)
+                .addWave('enemy2', 3)
+                .addWave('enemy4', 2)
+                .addWave('asteroid', 2); })
                 .addEvent(new Megaparsec.ChangeLevel(3, '#0000AA'))
                 .addLevel(function (level) { return level
-                .pushWave('enemy1', 3)
-                .pushWave('enemy2', 3)
-                .pushWave('enemy3', 3)
-                .pushWave('enemy2', 4)
-                .pushWave('enemy4', 3)
-                .pushWave('asteroid', 3)
-                .build(); });
+                .addWave('enemy1', 3)
+                .addWave('enemy2', 3)
+                .addWave('enemy3', 3)
+                .addWave('enemy2', 4)
+                .addWave('enemy4', 3)
+                .addWave('asteroid', 3); });
             return timeline;
         };
         return TimelinePresets;

@@ -60,6 +60,10 @@ namespace Lightspeed {
             return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
         }
 
+        public vectorTo(other: Vector) :Vector {
+            return new Vector(other.x - this.x, other.y - this.y);
+        }
+
         public static fromPolar(argument: number, magnitude: number) {
             return new Vector(
                 Math.cos(argument) * magnitude,
