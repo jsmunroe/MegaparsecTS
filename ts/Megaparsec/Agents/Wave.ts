@@ -24,6 +24,10 @@ namespace Megaparsec {
             this._waveMode = WaveMode[<string>config.waveMode];
             this._delay = config.delay || this._delay;
             this._interval = config.interval || this._interval;
+
+            if (config.levelBasedInterval && config.levelBasedInterval.length) {
+                this._interval = config.levelBasedInterval[Math.min(config.levelBasedInterval.length - 1, this._level)];
+            }
         }
 
         init(context: Lightspeed.ElementInitContext): void {

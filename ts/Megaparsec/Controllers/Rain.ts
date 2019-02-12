@@ -1,7 +1,13 @@
 namespace Megaparsec {
     export class Rain extends Controller {
+        private _horizontalVelocityRange: number[] = [-50, 25];
+        private _verticalVelocityRange: number[] = [150, 350];
+
         constructor(config: any, level: number) {
             super(level);
+
+            this._horizontalVelocityRange = this._horizontalVelocityRange.map(v => v * (1 + Math.min(3, (level - 1) * 0.75)));
+            this._verticalVelocityRange = this._verticalVelocityRange.map(v => v * (1 + Math.min(3, (level - 1) * 0.25)));
         }
 
         init(agent: Agent, constraintBox: Lightspeed.Box) {
@@ -18,7 +24,14 @@ namespace Megaparsec {
                 -100
             );
 
-            agent.velocity = new Lightspeed.Vector(-50 - Random.Current.next(50), 150 + Random.Current.next(200));;
+            agent.velocity = new Lightspeed.Vector(
+                Random.Current.getBetween(
+                    this._horizontalVelocityRange[0], 
+                    this._horizontalVelocityRange[1]),
+                Random.Current.getBetween(
+                    this._verticalVelocityRange[0], 
+                    this._verticalVelocityRange[1])
+                );
         }
 
         updateAgent(agent: Agent, context: Lightspeed.FrameUpdateContext) {

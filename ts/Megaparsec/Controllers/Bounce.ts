@@ -61,19 +61,34 @@ namespace Megaparsec {
                 );
 
                 if (Math.abs(agent.position.y - properties.targetY) < 1) {
-                    agent.acceleration = new Vector(-0.1, 0);
+                    if (agent.velocity.x > -this._maximumVelocityX) {
+                        agent.acceleration = new Vector(-0.1, 0);
+                        properties.phase = 'accelerating'
+                    } else {
+                        agent.acceleration = new Vector(1, 0);
+                        properties.phase = 'decelerating'
+                    }                    
                     properties.constrain = true;
-                    properties.phase = 'accelerating';
                 }
 
                 return;
             }
 
-            if (properties.phase === 'accelerating') {
+            if (properties.phase === 'accelerating') { 
                 if (agent.velocity.x <= -this._maximumVelocityX) {
                     agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
                     agent.acceleration = new Vector();
-                    properties.phase = 'cruising';
+                    properties.phase = 'cruising';          
+                }
+
+                return;
+            }
+
+            if (properties.phase === 'decelerating') { 
+                if (agent.velocity.x > -this._maximumVelocityX) {
+                    agent.velocity = agent.velocity.withX(x => -this._maximumVelocityX);
+                    agent.acceleration = new Vector();
+                    properties.phase = 'cruising';       
                 }
 
                 return;

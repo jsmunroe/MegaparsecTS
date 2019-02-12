@@ -100,6 +100,7 @@ var Config = {
             waveMode: 'OffsetWaveMode',
             waveCount: 100,
             interval: 250,
+            levelBasedInterval: [250, 225, 200, 175, 150, 125, 100],
             sheildType: 'None',
             horizontalConstraintTopology: 'Wrap', 
             virticalConstraintTopology: 'Block', 
