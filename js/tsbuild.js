@@ -278,37 +278,149 @@ var Lightspeed;
 (function (Lightspeed) {
     var Engine = /** @class */ (function () {
         function Engine() {
-            this._elements = [];
-            this._isPaused = false;
-            this._wasPaused = false;
-            this._elementTimeouts = [];
+            this._segments = [];
             this._canvas = Lightspeed.Canvas.find();
+            this.setSegment('Default Segment');
         }
+        Object.defineProperty(Engine.prototype, "currentSegment", {
+            get: function () {
+                return this._currentSegment;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Engine.prototype.setSegment = function (name) {
+            var frame = this._segments.filter(function (i) { return i.name === name; })[0];
+            if (!frame) {
+                frame = new Lightspeed.Segment(this, name);
+                this._segments.push(frame);
+            }
+            this._currentSegment = frame;
+        };
         Engine.prototype.clear = function () {
-            this._elements = [];
+            this.currentSegment.clear();
         };
         Engine.prototype.pushElement = function (element) {
+            this.currentSegment.pushElement(element);
+        };
+        Engine.prototype.removeElement = function (element) {
+            this.currentSegment.removeElement(element);
+        };
+        Engine.prototype.findElements = function (predicate) {
+            return this.currentSegment.findElements(predicate);
+        };
+        Engine.prototype.findFirstElement = function (predicate) {
+            return this.currentSegment.findFirstElement(predicate);
+        };
+        Engine.prototype.findClosestElement = function (position, predicate) {
+            return this.currentSegment.findClosestElement(position, predicate);
+        };
+        Object.defineProperty(Engine.prototype, "canvas", {
+            get: function () {
+                return this._canvas;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Engine.prototype, "isPaused", {
+            get: function () {
+                return this.currentSegment.isPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Engine.prototype.pause = function () {
+            this.currentSegment.pause();
+        };
+        Engine.prototype.unpause = function () {
+            this.currentSegment.unpause();
+        };
+        Engine.prototype.togglePause = function () {
+            this.currentSegment.togglePause();
+        };
+        Engine.prototype.requestTimeout = function (delay, element, action) {
+            this.currentSegment.requestTimeout(delay, element, action);
+        };
+        Engine.prototype.runFrame = function (timeStamp) {
+            requestAnimationFrame(this.runFrame.bind(this));
+            // Update phase
+            for (var i = 0; i < this._segments.length; i++) {
+                var segment = this._segments[i];
+                if (!segment.isPaused) {
+                    var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, segment.wasPaused);
+                    segment.update(updateContext);
+                }
+            }
+            // Render phase
+            var ctx = this.canvas.startRender();
+            var renderContext = new Lightspeed.FrameRenderContext(this, timeStamp, ctx);
+            this.currentSegment.render(renderContext);
+            this.canvas.endRender(ctx);
+        };
+        Engine.prototype.run = function () {
+            requestAnimationFrame(this.runFrame.bind(this));
+        };
+        return Engine;
+    }());
+    Lightspeed.Engine = Engine;
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var Segment = /** @class */ (function () {
+        function Segment(engine, name) {
+            this._isPaused = false;
+            this._wasPaused = false;
+            this._elements = [];
+            this._elementTimeouts = [];
+            this._engine = engine;
+            this._name = name;
+        }
+        Object.defineProperty(Segment.prototype, "isPaused", {
+            get: function () {
+                return this._isPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Segment.prototype, "wasPaused", {
+            get: function () {
+                return this._wasPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Segment.prototype, "name", {
+            get: function () {
+                return this._name;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Segment.prototype.clear = function () {
+            this._elements = [];
+        };
+        Segment.prototype.pushElement = function (element) {
             this._elements.push(element);
-            var initContext = new Lightspeed.ElementInitContext(this, this.canvas);
+            var initContext = new Lightspeed.ElementInitContext(this._engine, this._engine.canvas);
             element.init(initContext);
             this._elements.sort(function (a, b) { return a.zIndex - b.zIndex; });
         };
-        Engine.prototype.removeElement = function (element) {
+        Segment.prototype.removeElement = function (element) {
             var index = this._elements.indexOf(element);
             if (index !== -1) {
                 this._elements.splice(index, 1);
             }
         };
-        Engine.prototype.findElements = function (predicate) {
+        Segment.prototype.findElements = function (predicate) {
             if (!predicate) {
                 return this._elements;
             }
             return this._elements.filter(predicate);
         };
-        Engine.prototype.findFirstElement = function (predicate) {
+        Segment.prototype.findFirstElement = function (predicate) {
             return this.findElements(predicate)[0];
         };
-        Engine.prototype.findClosestElement = function (position, predicate) {
+        Segment.prototype.findClosestElement = function (position, predicate) {
             var elements = this.findElements(predicate).filter(function (i) { return i instanceof Lightspeed.InertialElement; }).map(function (i) { return i; });
             if (!elements.length) {
                 return null;
@@ -325,28 +437,14 @@ var Lightspeed;
             }
             return closestElement;
         };
-        Object.defineProperty(Engine.prototype, "canvas", {
-            get: function () {
-                return this._canvas;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Engine.prototype, "isPaused", {
-            get: function () {
-                return this._isPaused;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Engine.prototype.pause = function () {
+        Segment.prototype.pause = function () {
             this._isPaused = true;
             this._wasPaused = true;
         };
-        Engine.prototype.unpause = function () {
+        Segment.prototype.unpause = function () {
             this._isPaused = false;
         };
-        Engine.prototype.togglePause = function () {
+        Segment.prototype.togglePause = function () {
             if (this._isPaused) {
                 this.unpause();
             }
@@ -354,7 +452,7 @@ var Lightspeed;
                 this.pause();
             }
         };
-        Engine.prototype.requestTimeout = function (delay, element, action) {
+        Segment.prototype.requestTimeout = function (delay, element, action) {
             this._elementTimeouts.push({
                 delay: delay,
                 elapsed: 0,
@@ -362,49 +460,42 @@ var Lightspeed;
                 action: action
             });
         };
-        Engine.prototype.runFrame = function (timeStamp) {
-            requestAnimationFrame(this.runFrame.bind(this));
-            if (!this._isPaused) {
-                // Update phase
-                var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, this._wasPaused);
-                this._wasPaused = false;
-                // Get element timeouts for this frame.
-                var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
-                for (var i = 0; i < currentElementTimeouts.filter(function (p) { return p.element == null; }).length; i++) {
-                    var elementTimeout = currentElementTimeouts[i];
-                    elementTimeout.action.bind(this)(updateContext);
-                }
-                // Remove dead elements.
-                this._elements = this._elements.filter(function (p) { return !p.isDead; });
-                this.checkCollisions();
-                var _loop_1 = function (i) {
-                    var element = this_1._elements[i];
-                    updateContext.currentElement = element;
-                    element.update(updateContext);
-                    elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
-                    for (var j = 0; j < elementTimeouts.length; j++) {
-                        var elementTimeout = elementTimeouts[j];
-                        elementTimeout.action.bind(elementTimeout.element)(updateContext);
-                    }
-                };
-                var this_1 = this, elementTimeouts;
-                for (var i = 0; i < this._elements.length; i++) {
-                    _loop_1(i);
-                }
+        Segment.prototype.update = function (context) {
+            // Get element timeouts for this frame.
+            var currentElementTimeouts = this.getCurrentElementTimeouts(context);
+            for (var i = 0; i < currentElementTimeouts.filter(function (p) { return p.element == null; }).length; i++) {
+                var elementTimeout = currentElementTimeouts[i];
+                elementTimeout.action.bind(this)(context);
             }
-            // Render phase
-            var ctx = this.canvas.startRender();
-            var renderContext = new Lightspeed.FrameRenderContext(this, timeStamp, ctx);
+            // Remove dead elements.
+            this._elements = this._elements.filter(function (p) { return !p.isDead; });
+            this.checkCollisions();
+            var _loop_1 = function (i) {
+                var element = this_1._elements[i];
+                context.currentElement = element;
+                element.update(context);
+                elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
+                for (var j = 0; j < elementTimeouts.length; j++) {
+                    var elementTimeout = elementTimeouts[j];
+                    elementTimeout.action.bind(elementTimeout.element)(context);
+                }
+            };
+            var this_1 = this, elementTimeouts;
+            for (var i = 0; i < this._elements.length; i++) {
+                _loop_1(i);
+            }
+        };
+        Segment.prototype.render = function (context) {
+            var ctx = context.ctx;
             for (var i = 0; i < this._elements.length; i++) {
                 var element = this._elements[i];
                 ctx.save();
-                element.render(renderContext);
+                element.render(context);
                 ctx.restore();
             }
-            this.canvas.endRender(ctx);
         };
         // Get the element timeouts for the current frame.
-        Engine.prototype.getCurrentElementTimeouts = function (updateContext) {
+        Segment.prototype.getCurrentElementTimeouts = function (updateContext) {
             var currentElementTimeouts = [];
             var nextElementTimeouts = [];
             for (var i = 0; i < this._elementTimeouts.length; i++) {
@@ -420,26 +511,23 @@ var Lightspeed;
             this._elementTimeouts = nextElementTimeouts;
             return currentElementTimeouts;
         };
-        Engine.prototype.checkCollisions = function () {
+        Segment.prototype.checkCollisions = function () {
             var collisions = [];
             for (var i = 0; i < this._elements.length; i++) {
                 for (var j = i + 1; j < this._elements.length; j++) {
                     var first = this._elements[i];
                     var second = this._elements[j];
                     if (first.collidesWith(second)) {
-                        first.onCollide(new Lightspeed.ElementCollisionContext(this, second));
-                        second.onCollide(new Lightspeed.ElementCollisionContext(this, first));
+                        first.onCollide(new Lightspeed.ElementCollisionContext(this._engine, second));
+                        second.onCollide(new Lightspeed.ElementCollisionContext(this._engine, first));
                     }
                 }
             }
             return collisions;
         };
-        Engine.prototype.run = function () {
-            requestAnimationFrame(this.runFrame.bind(this));
-        };
-        return Engine;
+        return Segment;
     }());
-    Lightspeed.Engine = Engine;
+    Lightspeed.Segment = Segment;
     var ElementTimeout = /** @class */ (function () {
         function ElementTimeout() {
         }
@@ -901,6 +989,8 @@ var Lightspeed;
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 var Megaparsec;
 (function (Megaparsec) {
+    Megaparsec.menuSegment = "Menu Segment";
+    Megaparsec.gamePlaySegment = "Game Play Segment";
     var Game = /** @class */ (function (_super) {
         __extends(Game, _super);
         function Game() {
@@ -918,10 +1008,12 @@ var Megaparsec;
         });
         Game.prototype.load = function (config) {
             this.clear();
+            this.setSegment(Megaparsec.gamePlaySegment);
             this.pushElement(new Megaparsec.Background());
             this.pushElement(new Megaparsec.StarField(200));
             this.loadPlayer();
             this.loadTimeline();
+            this.setSegment(Megaparsec.menuSegment);
         };
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();

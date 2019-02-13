@@ -1,6 +1,9 @@
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 
 namespace Megaparsec {
+    export const menuSegment = "Menu Segment";
+    export const gamePlaySegment = "Game Play Segment";
+
     export class Game extends Lightspeed.Engine {
         private static s_current: Game;
         
@@ -23,12 +26,16 @@ namespace Megaparsec {
         load(config: any) {
             this.clear();
             
+            this.setSegment(gamePlaySegment);
+            
             this.pushElement(new Background());
             this.pushElement(new StarField(200));
 
             this.loadPlayer();
 
             this.loadTimeline();
+
+            this.setSegment(menuSegment);
         }
 
         loadPlayer() {
@@ -42,13 +49,17 @@ namespace Megaparsec {
         }
 
         pause() {
-            this.pushElement(this._pauseMessage);
+            if (this.currentSegment.name === gamePlaySegment) {
+                this.pushElement(this._pauseMessage);
+            }
 
             super.pause();
         }
 
         unpause() {
-            this.removeElement(this._pauseMessage);
+            if (this.currentSegment.name === gamePlaySegment) {
+                this.removeElement(this._pauseMessage);
+            }
 
             super.unpause();
         }

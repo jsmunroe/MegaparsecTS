@@ -1,197 +1,101 @@
 namespace Lightspeed {
     export class Engine {
-        private _canvas : Canvas;
+        private _canvas :Canvas;
 
-        private _elements : Element[] = [];
+        private _segments :Segment[] = [];
+        private _currentSegment :Segment;
 
-        private _isPaused : boolean = false;
-        private _wasPaused : boolean = false;
-
-        private _elementTimeouts: ElementTimeout[] = [];
+        get currentSegment() {
+            return this._currentSegment;
+        }
 
         constructor() {
             this._canvas = Canvas.find();
+
+            this.setSegment('Default Segment');
+        }
+
+        setSegment(name: string) {
+            var frame = this._segments.filter(i => i.name === name)[0];
+
+            if (!frame) {
+                frame = new Segment(this, name);
+                this._segments.push(frame);
+            }
+
+            this._currentSegment = frame;
         }
 
         public clear() {
-            this._elements = [];
+            this.currentSegment.clear();
         }
 
         public pushElement(element: Element) {
-            this._elements.push(element);
-
-            var initContext = new ElementInitContext(this, this.canvas);
-            element.init(initContext);
-
-            this._elements.sort((a, b) => a.zIndex - b.zIndex);
+            this.currentSegment.pushElement(element);
         }
 
         public removeElement(element: Element) {
-            var index = this._elements.indexOf(element);
-
-            if (index !== -1) {
-                this._elements.splice(index, 1);
-            }
+            this.currentSegment.removeElement(element);
         }
 
-        public findElements(predicate?: (element: Element) => boolean) {
-            if (!predicate) {
-                return this._elements;
-            }
-
-            return this._elements.filter(predicate);
+        public findElements(predicate?: (element: Element) => boolean) :Element[] {
+            return this.currentSegment.findElements(predicate);
         }
 
-        public findFirstElement(predicate?: (element: Element) => boolean) {
-            return this.findElements(predicate)[0];
+        public findFirstElement(predicate?: (element: Element) => boolean) :Element {
+            return this.currentSegment.findFirstElement(predicate);
         }
 
-        public findClosestElement(position: Vector, predicate?: (element: Element) => boolean) {
-            var elements: InertialElement[] = this.findElements(predicate).filter(i => i instanceof InertialElement).map(i => <InertialElement>i);
-
-            if (!elements.length) {
-                return null;
-            }
-
-            var closestElement = elements[0];
-            var closestDistance = closestElement.position.distanceTo(position);
-            for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                
-                var distance = element.position.distanceTo(position);
-                if (distance < closestDistance) {
-                    closestElement = element;
-                    closestDistance = distance;
-                }
-            }
-
-            return closestElement;
+        public findClosestElement(position: Vector, predicate?: (element: Element) => boolean) :Element {
+            return this.currentSegment.findClosestElement(position, predicate);
         }
 
         public get canvas() {
             return this._canvas;
         }
 
-        public get isPaused() {
-            return this._isPaused;
+        public get isPaused() :boolean {
+            return this.currentSegment.isPaused;
         }
 
         public pause() {
-            this._isPaused = true;
-            this._wasPaused = true;
+            this.currentSegment.pause();
         }
 
         public unpause() {
-            this._isPaused = false;
+            this.currentSegment.unpause();
         }
 
         public togglePause() {
-            if (this._isPaused) {
-                this.unpause();
-            } else {
-                this.pause();
-            }
+            this.currentSegment.togglePause();
         }
 
         public requestTimeout(delay: number, element: Element, action: (context: FrameUpdateContext) => void) {
-            this._elementTimeouts.push({
-                delay: delay,
-                elapsed: 0,
-                element: element,
-                action: action
-            });
+            this.currentSegment.requestTimeout(delay, element, action);
         }
 
         private runFrame(timeStamp : DOMHighResTimeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
 
-            if (!this._isPaused) {
-                // Update phase
-                var updateContext = new FrameUpdateContext(this, timeStamp, this._wasPaused);
+            // Update phase
+            for (let i = 0; i < this._segments.length; i++) {
+                const segment = this._segments[i];
+                
+                if (!segment.isPaused) {
+                    var updateContext = new FrameUpdateContext(this, timeStamp, segment.wasPaused);
 
-                this._wasPaused = false;
-
-                // Get element timeouts for this frame.
-                var currentElementTimeouts = this.getCurrentElementTimeouts(updateContext);
-
-                for (let i = 0; i < currentElementTimeouts.filter(p => p.element == null).length; i++) {
-                    const elementTimeout = currentElementTimeouts[i];
-                    elementTimeout.action.bind(this)(updateContext);
+                    segment.update(updateContext);
                 }
 
-                // Remove dead elements.
-                this._elements = this._elements.filter(p => !p.isDead)
-
-                this.checkCollisions();
-
-                for (let i = 0; i < this._elements.length; i++) {
-                    const element = this._elements[i];
-                    
-                    updateContext.currentElement = element;
-
-                    element.update(updateContext);
-
-                    var elementTimeouts = currentElementTimeouts.filter(i => i.element === element);
-                    for (let j = 0; j < elementTimeouts.length; j++) {
-                        const elementTimeout = elementTimeouts[j];
-                        elementTimeout.action.bind(elementTimeout.element)(updateContext);
-                    }
-                }
             }
 
             // Render phase
             var ctx = this.canvas.startRender();
             var renderContext = new FrameRenderContext(this, timeStamp, ctx);
 
-            for (let i = 0; i < this._elements.length; i++) {
-                const element = this._elements[i];
-
-                ctx.save();
-                
-                element.render(renderContext);
-
-                ctx.restore();
-            }
+            this.currentSegment.render(renderContext);
 
             this.canvas.endRender(ctx);
-        }
-
-        // Get the element timeouts for the current frame.
-        private getCurrentElementTimeouts(updateContext: FrameUpdateContext) {
-            var currentElementTimeouts = [];
-            var nextElementTimeouts = [];
-
-            for (let i = 0; i < this._elementTimeouts.length; i++) {
-                const elementTimeout = this._elementTimeouts[i];
-
-                elementTimeout.elapsed += updateContext.elapsed;
-                if (elementTimeout.elapsed >= elementTimeout.delay) {
-                    currentElementTimeouts.push(elementTimeout);
-                } else {
-                    nextElementTimeouts.push(elementTimeout);
-                }
-            }
-
-            this._elementTimeouts = nextElementTimeouts;
-
-            return currentElementTimeouts;
-        }
-
-        private checkCollisions() {
-            var collisions = [];
-                for (var i = 0; i < this._elements.length; i++) {
-                for (var j = i + 1; j < this._elements.length; j++) {
-                    var first = this._elements[i];
-                    var second = this._elements[j];
-    
-                    if (first.collidesWith(second)) {
-                        first.onCollide(new ElementCollisionContext(this, second));
-                        second.onCollide(new ElementCollisionContext(this, first));
-                    }
-                }
-            }
-    
-            return collisions;
         }
 
         public run() {
@@ -199,10 +103,4 @@ namespace Lightspeed {
         }
     }
 
-    class ElementTimeout {
-        public delay: number;
-        public elapsed :number;
-        public element :Element;
-        public action :(context: FrameUpdateContext) => void;
-    }
 }
