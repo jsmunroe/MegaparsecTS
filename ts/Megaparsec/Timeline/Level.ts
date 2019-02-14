@@ -32,7 +32,7 @@ namespace Megaparsec {
 
         init(context: Lightspeed.ElementInitContext) : void {
             this._elements.forEach(element => {
-                context.activate(element);
+                context.pushElement(element);
             });
         }
 
@@ -45,7 +45,7 @@ namespace Megaparsec {
                 }
 
                 var nextWave = this._waves.shift();
-                context.activate(nextWave);
+                context.pushElement(nextWave);
                 this._currentWave = nextWave;
             }
         }

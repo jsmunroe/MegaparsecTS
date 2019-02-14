@@ -9,7 +9,7 @@ namespace Megaparsec {
         }
 
         init(context: Lightspeed.ElementInitContext) : void {
-            context.activate(this._element);
+            context.pushElement(this._element);
             this.kill();
         }
     }

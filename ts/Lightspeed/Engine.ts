@@ -2,103 +2,125 @@ namespace Lightspeed {
     export class Engine {
         private _canvas :Canvas;
 
-        private _segments :Segment[] = [];
-        private _currentSegment :Segment;
+        private _scenes :Scene[] = [];
+        private _currentScene :Scene;
 
-        get currentSegment() {
-            return this._currentSegment;
+        private _lastTimeStamp: number;
+
+        get currentScene() {
+            return this._currentScene;
+        }
+
+        get canvas() {
+            return this._canvas;
         }
 
         constructor() {
             this._canvas = Canvas.find();
 
-            this.setSegment('Default Segment');
+            this.setScene('Default Scene');
         }
 
-        setSegment(name: string) {
-            var frame = this._segments.filter(i => i.name === name)[0];
+        setScene(name: string) {
+            this._currentScene = this.getScene(name);
+        }
 
-            if (!frame) {
-                frame = new Segment(this, name);
-                this._segments.push(frame);
+        getScene(name: string) :Scene {
+            var scene = this._scenes.filter(i => i.name === name)[0];
+
+            if (!scene) {
+                scene = new Scene(this, name);
+                this._scenes.push(scene);
             }
 
-            this._currentSegment = frame;
+            return scene;
         }
 
-        public clear() {
-            this.currentSegment.clear();
+        clear() {
+            this.currentScene.clear();
         }
 
-        public pushElement(element: Element) {
-            this.currentSegment.pushElement(element);
+        pushElement(element: Element) {
+            this.currentScene.pushElement(element);
         }
 
-        public removeElement(element: Element) {
-            this.currentSegment.removeElement(element);
+        removeElement(element: Element) {
+            this.currentScene.removeElement(element);
         }
 
-        public findElements(predicate?: (element: Element) => boolean) :Element[] {
-            return this.currentSegment.findElements(predicate);
+        findElements(predicate?: (element: Element) => boolean) :Element[] {
+            return this.currentScene.findElements(predicate);
         }
 
-        public findFirstElement(predicate?: (element: Element) => boolean) :Element {
-            return this.currentSegment.findFirstElement(predicate);
+        findFirstElement(predicate?: (element: Element) => boolean) :Element {
+            return this.currentScene.findFirstElement(predicate);
         }
 
-        public findClosestElement(position: Vector, predicate?: (element: Element) => boolean) :Element {
-            return this.currentSegment.findClosestElement(position, predicate);
+        findClosestElement(position: Vector, predicate?: (element: Element) => boolean) :Element {
+            return this.currentScene.findClosestElement(position, predicate);
         }
 
-        public get canvas() {
-            return this._canvas;
+        get isPaused() :boolean {
+            return this.currentScene.isPaused;
         }
 
-        public get isPaused() :boolean {
-            return this.currentSegment.isPaused;
+        pause() {
+            this.currentScene.pause();
         }
 
-        public pause() {
-            this.currentSegment.pause();
+        unpause() {
+            this.currentScene.unpause();
         }
 
-        public unpause() {
-            this.currentSegment.unpause();
+        togglePause() {
+            this.currentScene.togglePause();
         }
 
-        public togglePause() {
-            this.currentSegment.togglePause();
+        requestTimeout(delay: number, element: Element, action: (context: FrameUpdateContext) => void) {
+            this.currentScene.requestTimeout(delay, element, action);
         }
 
-        public requestTimeout(delay: number, element: Element, action: (context: FrameUpdateContext) => void) {
-            this.currentSegment.requestTimeout(delay, element, action);
+        onPause(scene: Scene) {
+            // optionally overloaded by extending classes to handle pause.
+        }
+
+        onUnpause(scene: Scene) {
+            // optionally overloaded by extending classes to handle unpause.
         }
 
         private runFrame(timeStamp : DOMHighResTimeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
 
-            // Update phase
-            for (let i = 0; i < this._segments.length; i++) {
-                const segment = this._segments[i];
-                
-                if (!segment.isPaused) {
-                    var updateContext = new FrameUpdateContext(this, timeStamp, segment.wasPaused);
-
-                    segment.update(updateContext);
-                }
-
+            if (!this._lastTimeStamp) {
+                this._lastTimeStamp = timeStamp;
             }
+
+            var elapsed = timeStamp - this._lastTimeStamp;
+
+            // Update phase
+            for (let i = 0; i < this._scenes.length; i++) {
+                const scene = this._scenes[i];
+                
+                if (!scene.isPaused) {                    
+                    var updateContext = new FrameUpdateContext(this, scene, elapsed, scene.wasPaused);
+
+                    scene.update(updateContext);
+                }
+            }
+
+            this._lastTimeStamp = timeStamp;
+
 
             // Render phase
             var ctx = this.canvas.startRender();
             var renderContext = new FrameRenderContext(this, timeStamp, ctx);
 
-            this.currentSegment.render(renderContext);
+            this.currentScene.render(renderContext);
 
             this.canvas.endRender(ctx);
         }
 
-        public run() {
+        run() {
             requestAnimationFrame(this.runFrame.bind(this));
         }
     }

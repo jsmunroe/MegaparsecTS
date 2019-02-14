@@ -1,5 +1,5 @@
 namespace Lightspeed {
-    export class Segment {
+    export class Scene {
         private _engine: Engine;
         private _name: string;
 
@@ -8,6 +8,8 @@ namespace Lightspeed {
 
         private _elements : Element[] = [];
         private _elementTimeouts: ElementTimeout[] = [];
+
+        lastTimeStamp : number;
 
         get isPaused() :boolean {
             return this._isPaused;
@@ -33,7 +35,7 @@ namespace Lightspeed {
         pushElement(element: Element) {
             this._elements.push(element);
 
-            var initContext = new ElementInitContext(this._engine, this._engine.canvas);
+            var initContext = new ElementInitContext(this._engine, this);
             element.init(initContext);
 
             this._elements.sort((a, b) => a.zIndex - b.zIndex);
@@ -84,10 +86,14 @@ namespace Lightspeed {
         pause() {
             this._isPaused = true;
             this._wasPaused = true;
+
+            this._engine.onPause(this);
         }
 
         unpause() {
             this._isPaused = false;
+
+            this._engine.onUnpause(this);
         }
 
         togglePause() {
@@ -134,6 +140,8 @@ namespace Lightspeed {
                     elementTimeout.action.bind(elementTimeout.element)(context);
                 }
             }
+
+            this._wasPaused = false;
         }
 
         render(context: FrameRenderContext) {
@@ -179,8 +187,8 @@ namespace Lightspeed {
                     var second = this._elements[j];
     
                     if (first.collidesWith(second)) {
-                        first.onCollide(new ElementCollisionContext(this._engine, second));
-                        second.onCollide(new ElementCollisionContext(this._engine, first));
+                        first.onCollide(new ElementCollisionContext(this._engine, this, second));
+                        second.onCollide(new ElementCollisionContext(this._engine, this, first));
                     }
                 }
             }

@@ -48,7 +48,7 @@ namespace Megaparsec {
 
             if (properties.phase === 'targetting') {  
             
-                var target :Player = <Player>context.engine.findFirstElement(i => i instanceof Player);
+                var target :Player = <Player>context.scene.findFirstElement(i => i instanceof Player);
 
                 if (!target || target.isDead) {
                     agent.velocity = new Vector();
@@ -61,7 +61,7 @@ namespace Megaparsec {
                     agent.position.y >= target.position.y && agent.velocity.y > 0) {
 
                     if (properties.lastFireElapsed > this._shotIteration) {
-                        context.activate(new Shot(agent, new Lightspeed.Vector(-this._shotSpeed)));
+                        context.pushElement(new Shot(agent, new Lightspeed.Vector(-this._shotSpeed)));
                         properties.lastFireElapsed = 0;
 
                         agent.velocity = new Vector(-this._forwardVelocity, 0);

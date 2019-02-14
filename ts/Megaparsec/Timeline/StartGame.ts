@@ -25,21 +25,21 @@ namespace Megaparsec {
         }
 
         init(context: Lightspeed.ElementInitContext) : void {
-            this._hills = context.engine.findFirstElement(i => i instanceof Hills) as Hills;
-            this._starField = context.engine.findFirstElement(i => i instanceof StarField) as StarField;
+            this._hills = context.findFirstElement(i => i instanceof Hills) as Hills;
+            this._starField = context.findFirstElement(i => i instanceof StarField) as StarField;
 
             if (this._hills) {
                 this._hills.kill();
             }
 
             this._starField.velocity = new Vector(-1000, 0);
-            context.engine.pushElement(this._startGameMessage);
+            context.pushElement(this._startGameMessage);
 
             this._phases = [
                 Phase.when(context => this._elapsed > 4000)
                     .do(context => {
                         this._startGameMessage.kill();
-                        context.activate(this._nextLevelMessage);
+                        context.pushElement(this._nextLevelMessage);
                         this._starField.acceleration = new Vector(5, 0);
                     }),
                 Phase.when(context => this._elapsed > 6000 || this._starField.velocity.x > 0)
@@ -49,7 +49,7 @@ namespace Megaparsec {
                         hills.velocity = new Vector(-500, -50);
                         hills.acceleration = new Vector(1, -5);
     
-                        context.activate(hills);
+                        context.pushElement(hills);
                         this._hills = hills;     
                     }),
                 Phase.when(context => this._hills.position.y <= 0)

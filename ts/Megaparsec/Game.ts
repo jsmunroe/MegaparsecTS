@@ -1,8 +1,8 @@
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 
 namespace Megaparsec {
-    export const menuSegment = "Menu Segment";
-    export const gamePlaySegment = "Game Play Segment";
+    export const menuSceneName = "Menu Scene";
+    export const gamePlaySceneName = "Game Play Scene";
 
     export class Game extends Lightspeed.Engine {
         private static s_current: Game;
@@ -26,7 +26,8 @@ namespace Megaparsec {
         load(config: any) {
             this.clear();
             
-            this.setSegment(gamePlaySegment);
+            // Game Play Scene
+            this.setScene(gamePlaySceneName);
             
             this.pushElement(new Background());
             this.pushElement(new StarField(200));
@@ -35,7 +36,13 @@ namespace Megaparsec {
 
             this.loadTimeline();
 
-            this.setSegment(menuSegment);
+            // Menu Scene
+            this.setScene(menuSceneName);
+
+            var starField = new StarField(200);
+            starField.velocity = new Vector(-500, 0);
+            this.pushElement(new Background());
+            this.pushElement(starField);
         }
 
         loadPlayer() {
@@ -48,20 +55,16 @@ namespace Megaparsec {
             this.pushElement(TimelinePresets.classic());
         }
 
-        pause() {
-            if (this.currentSegment.name === gamePlaySegment) {
-                this.pushElement(this._pauseMessage);
+        onPause(scene: Lightspeed.Scene) {
+            if (scene.name === gamePlaySceneName) {
+                this.setScene(menuSceneName);
             }
-
-            super.pause();
         }
 
-        unpause() {
-            if (this.currentSegment.name === gamePlaySegment) {
-                this.removeElement(this._pauseMessage);
+        onUnpause(scene: Lightspeed.Scene) {
+            if (scene.name === gamePlaySceneName) {
+                this.setScene(gamePlaySceneName);
             }
-
-            super.unpause();
         }
 
         private onPlayerKilled(message: Lightspeed.Utils.Message) {
@@ -73,11 +76,13 @@ namespace Megaparsec {
             game.load(Config);
             game.run();
 
-            Keyboard.Current.keys(Config.keys.pause, () => game.togglePause());
+            var gamePlayScene = game.getScene(gamePlaySceneName);
+
+            Keyboard.Current.keys(Config.keys.pause, () => gamePlayScene.togglePause());
 
             window.addEventListener('blur', () => {
-                if (!game.isPaused) {
-                    game.pause();
+                if (!gamePlayScene.isPaused) {
+                    gamePlayScene.pause();
                 }
             });
         }

@@ -1,11 +1,15 @@
+/// <reference path="SceneContext.ts" />
+
 namespace Lightspeed {
-    export class ElementInitContext {
+    export class ElementInitContext extends SceneContext{
         private _canvasBox: Box;
         private _engine: Engine;
 
-        constructor(engine: Engine, canvas :Canvas) {
+        constructor(engine: Engine, scene: Scene) {
+            super(scene);
+
             this._engine = engine;
-            this._canvasBox = canvas.box;
+            this._canvasBox = engine.canvas.box;
         }
 
         public get engine(): Engine {
@@ -14,14 +18,6 @@ namespace Lightspeed {
 
         public get canvasBox() {
             return this._canvasBox;
-        }
-
-        public activate(element: Element): void {
-            this._engine.pushElement(element);
-        }
-
-        public delay(time: number, element: Element, action: (context: FrameUpdateContext) => void): void {
-            this._engine.requestTimeout(time, element, action);
         }
     }
 }

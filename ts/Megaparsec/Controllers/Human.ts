@@ -42,7 +42,7 @@ namespace Megaparsec {
             properties.lastFireElapsed += context.elapsed;
             if (Keyboard.Current.keys(keys.primaryFire)) {
                 if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
-                    context.activate(new Shot(agent, new Lightspeed.Vector(800)));
+                    context.pushElement(new Shot(agent, new Lightspeed.Vector(800)));
                     properties.lastFireElapsed = 0;
                 }
             }

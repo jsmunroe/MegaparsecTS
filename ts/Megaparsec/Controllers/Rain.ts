@@ -41,7 +41,7 @@ namespace Megaparsec {
             {
                 if (agent.position.y > context.canvasBox.height) {
                     agent.kill();
-                    context.activate(new Explosion(agent, new Vector(-200, 0)));
+                    context.pushElement(new Explosion(agent, new Vector(-200, 0)));
                 }
             }
         }

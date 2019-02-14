@@ -224,10 +224,61 @@ var Lightspeed;
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
-    var ElementCollisionContext = /** @class */ (function () {
-        function ElementCollisionContext(engine, otherElement) {
-            this._engine = engine;
-            this._otherElement = otherElement;
+    var SceneContext = /** @class */ (function () {
+        function SceneContext(scene) {
+            this._scene = scene;
+        }
+        Object.defineProperty(SceneContext.prototype, "scene", {
+            get: function () {
+                return this._scene;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        SceneContext.prototype.clear = function () {
+            this._scene.clear();
+        };
+        SceneContext.prototype.pushElement = function (element) {
+            this._scene.pushElement(element);
+        };
+        SceneContext.prototype.removeElement = function (element) {
+            this._scene.removeElement(element);
+        };
+        SceneContext.prototype.findElements = function (predicate) {
+            return this._scene.findElements(predicate);
+        };
+        SceneContext.prototype.findFirstElement = function (predicate) {
+            return this._scene.findFirstElement(predicate);
+        };
+        SceneContext.prototype.findClosestElement = function (position, predicate) {
+            return this._scene.findClosestElement(position, predicate);
+        };
+        SceneContext.prototype.pause = function () {
+            this._scene.pause();
+        };
+        SceneContext.prototype.unpause = function () {
+            this._scene.unpause();
+        };
+        SceneContext.prototype.togglePause = function () {
+            this._scene.togglePause();
+        };
+        SceneContext.prototype.requestTimeout = function (delay, element, action) {
+            this._scene.requestTimeout(delay, element, action);
+        };
+        return SceneContext;
+    }());
+    Lightspeed.SceneContext = SceneContext;
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="SceneContext.ts" />
+var Lightspeed;
+(function (Lightspeed) {
+    var ElementCollisionContext = /** @class */ (function (_super) {
+        __extends(ElementCollisionContext, _super);
+        function ElementCollisionContext(engine, scene, otherElement) {
+            var _this = _super.call(this, scene) || this;
+            _this._engine = engine;
+            _this._otherElement = otherElement;
+            return _this;
         }
         Object.defineProperty(ElementCollisionContext.prototype, "otherElement", {
             get: function () {
@@ -236,19 +287,20 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
-        ElementCollisionContext.prototype.pushElement = function (element) {
-            this._engine.pushElement(element);
-        };
         return ElementCollisionContext;
-    }());
+    }(Lightspeed.SceneContext));
     Lightspeed.ElementCollisionContext = ElementCollisionContext;
 })(Lightspeed || (Lightspeed = {}));
+/// <reference path="SceneContext.ts" />
 var Lightspeed;
 (function (Lightspeed) {
-    var ElementInitContext = /** @class */ (function () {
-        function ElementInitContext(engine, canvas) {
-            this._engine = engine;
-            this._canvasBox = canvas.box;
+    var ElementInitContext = /** @class */ (function (_super) {
+        __extends(ElementInitContext, _super);
+        function ElementInitContext(engine, scene) {
+            var _this = _super.call(this, scene) || this;
+            _this._engine = engine;
+            _this._canvasBox = engine.canvas.box;
+            return _this;
         }
         Object.defineProperty(ElementInitContext.prototype, "engine", {
             get: function () {
@@ -264,57 +316,25 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
-        ElementInitContext.prototype.activate = function (element) {
-            this._engine.pushElement(element);
-        };
-        ElementInitContext.prototype.delay = function (time, element, action) {
-            this._engine.requestTimeout(time, element, action);
-        };
         return ElementInitContext;
-    }());
+    }(Lightspeed.SceneContext));
     Lightspeed.ElementInitContext = ElementInitContext;
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
     var Engine = /** @class */ (function () {
         function Engine() {
-            this._segments = [];
+            this._scenes = [];
             this._canvas = Lightspeed.Canvas.find();
-            this.setSegment('Default Segment');
+            this.setScene('Default Scene');
         }
-        Object.defineProperty(Engine.prototype, "currentSegment", {
+        Object.defineProperty(Engine.prototype, "currentScene", {
             get: function () {
-                return this._currentSegment;
+                return this._currentScene;
             },
             enumerable: true,
             configurable: true
         });
-        Engine.prototype.setSegment = function (name) {
-            var frame = this._segments.filter(function (i) { return i.name === name; })[0];
-            if (!frame) {
-                frame = new Lightspeed.Segment(this, name);
-                this._segments.push(frame);
-            }
-            this._currentSegment = frame;
-        };
-        Engine.prototype.clear = function () {
-            this.currentSegment.clear();
-        };
-        Engine.prototype.pushElement = function (element) {
-            this.currentSegment.pushElement(element);
-        };
-        Engine.prototype.removeElement = function (element) {
-            this.currentSegment.removeElement(element);
-        };
-        Engine.prototype.findElements = function (predicate) {
-            return this.currentSegment.findElements(predicate);
-        };
-        Engine.prototype.findFirstElement = function (predicate) {
-            return this.currentSegment.findFirstElement(predicate);
-        };
-        Engine.prototype.findClosestElement = function (position, predicate) {
-            return this.currentSegment.findClosestElement(position, predicate);
-        };
         Object.defineProperty(Engine.prototype, "canvas", {
             get: function () {
                 return this._canvas;
@@ -322,39 +342,79 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        Engine.prototype.setScene = function (name) {
+            this._currentScene = this.getScene(name);
+        };
+        Engine.prototype.getScene = function (name) {
+            var scene = this._scenes.filter(function (i) { return i.name === name; })[0];
+            if (!scene) {
+                scene = new Lightspeed.Scene(this, name);
+                this._scenes.push(scene);
+            }
+            return scene;
+        };
+        Engine.prototype.clear = function () {
+            this.currentScene.clear();
+        };
+        Engine.prototype.pushElement = function (element) {
+            this.currentScene.pushElement(element);
+        };
+        Engine.prototype.removeElement = function (element) {
+            this.currentScene.removeElement(element);
+        };
+        Engine.prototype.findElements = function (predicate) {
+            return this.currentScene.findElements(predicate);
+        };
+        Engine.prototype.findFirstElement = function (predicate) {
+            return this.currentScene.findFirstElement(predicate);
+        };
+        Engine.prototype.findClosestElement = function (position, predicate) {
+            return this.currentScene.findClosestElement(position, predicate);
+        };
         Object.defineProperty(Engine.prototype, "isPaused", {
             get: function () {
-                return this.currentSegment.isPaused;
+                return this.currentScene.isPaused;
             },
             enumerable: true,
             configurable: true
         });
         Engine.prototype.pause = function () {
-            this.currentSegment.pause();
+            this.currentScene.pause();
         };
         Engine.prototype.unpause = function () {
-            this.currentSegment.unpause();
+            this.currentScene.unpause();
         };
         Engine.prototype.togglePause = function () {
-            this.currentSegment.togglePause();
+            this.currentScene.togglePause();
         };
         Engine.prototype.requestTimeout = function (delay, element, action) {
-            this.currentSegment.requestTimeout(delay, element, action);
+            this.currentScene.requestTimeout(delay, element, action);
+        };
+        Engine.prototype.onPause = function (scene) {
+            // optionally overloaded by extending classes to handle pause.
+        };
+        Engine.prototype.onUnpause = function (scene) {
+            // optionally overloaded by extending classes to handle unpause.
         };
         Engine.prototype.runFrame = function (timeStamp) {
             requestAnimationFrame(this.runFrame.bind(this));
+            if (!this._lastTimeStamp) {
+                this._lastTimeStamp = timeStamp;
+            }
+            var elapsed = timeStamp - this._lastTimeStamp;
             // Update phase
-            for (var i = 0; i < this._segments.length; i++) {
-                var segment = this._segments[i];
-                if (!segment.isPaused) {
-                    var updateContext = new Lightspeed.FrameUpdateContext(this, timeStamp, segment.wasPaused);
-                    segment.update(updateContext);
+            for (var i = 0; i < this._scenes.length; i++) {
+                var scene = this._scenes[i];
+                if (!scene.isPaused) {
+                    var updateContext = new Lightspeed.FrameUpdateContext(this, scene, elapsed, scene.wasPaused);
+                    scene.update(updateContext);
                 }
             }
+            this._lastTimeStamp = timeStamp;
             // Render phase
             var ctx = this.canvas.startRender();
             var renderContext = new Lightspeed.FrameRenderContext(this, timeStamp, ctx);
-            this.currentSegment.render(renderContext);
+            this.currentScene.render(renderContext);
             this.canvas.endRender(ctx);
         };
         Engine.prototype.run = function () {
@@ -363,176 +423,6 @@ var Lightspeed;
         return Engine;
     }());
     Lightspeed.Engine = Engine;
-})(Lightspeed || (Lightspeed = {}));
-var Lightspeed;
-(function (Lightspeed) {
-    var Segment = /** @class */ (function () {
-        function Segment(engine, name) {
-            this._isPaused = false;
-            this._wasPaused = false;
-            this._elements = [];
-            this._elementTimeouts = [];
-            this._engine = engine;
-            this._name = name;
-        }
-        Object.defineProperty(Segment.prototype, "isPaused", {
-            get: function () {
-                return this._isPaused;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Segment.prototype, "wasPaused", {
-            get: function () {
-                return this._wasPaused;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Segment.prototype, "name", {
-            get: function () {
-                return this._name;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Segment.prototype.clear = function () {
-            this._elements = [];
-        };
-        Segment.prototype.pushElement = function (element) {
-            this._elements.push(element);
-            var initContext = new Lightspeed.ElementInitContext(this._engine, this._engine.canvas);
-            element.init(initContext);
-            this._elements.sort(function (a, b) { return a.zIndex - b.zIndex; });
-        };
-        Segment.prototype.removeElement = function (element) {
-            var index = this._elements.indexOf(element);
-            if (index !== -1) {
-                this._elements.splice(index, 1);
-            }
-        };
-        Segment.prototype.findElements = function (predicate) {
-            if (!predicate) {
-                return this._elements;
-            }
-            return this._elements.filter(predicate);
-        };
-        Segment.prototype.findFirstElement = function (predicate) {
-            return this.findElements(predicate)[0];
-        };
-        Segment.prototype.findClosestElement = function (position, predicate) {
-            var elements = this.findElements(predicate).filter(function (i) { return i instanceof Lightspeed.InertialElement; }).map(function (i) { return i; });
-            if (!elements.length) {
-                return null;
-            }
-            var closestElement = elements[0];
-            var closestDistance = closestElement.position.distanceTo(position);
-            for (var i = 0; i < elements.length; i++) {
-                var element = elements[i];
-                var distance = element.position.distanceTo(position);
-                if (distance < closestDistance) {
-                    closestElement = element;
-                    closestDistance = distance;
-                }
-            }
-            return closestElement;
-        };
-        Segment.prototype.pause = function () {
-            this._isPaused = true;
-            this._wasPaused = true;
-        };
-        Segment.prototype.unpause = function () {
-            this._isPaused = false;
-        };
-        Segment.prototype.togglePause = function () {
-            if (this._isPaused) {
-                this.unpause();
-            }
-            else {
-                this.pause();
-            }
-        };
-        Segment.prototype.requestTimeout = function (delay, element, action) {
-            this._elementTimeouts.push({
-                delay: delay,
-                elapsed: 0,
-                element: element,
-                action: action
-            });
-        };
-        Segment.prototype.update = function (context) {
-            // Get element timeouts for this frame.
-            var currentElementTimeouts = this.getCurrentElementTimeouts(context);
-            for (var i = 0; i < currentElementTimeouts.filter(function (p) { return p.element == null; }).length; i++) {
-                var elementTimeout = currentElementTimeouts[i];
-                elementTimeout.action.bind(this)(context);
-            }
-            // Remove dead elements.
-            this._elements = this._elements.filter(function (p) { return !p.isDead; });
-            this.checkCollisions();
-            var _loop_1 = function (i) {
-                var element = this_1._elements[i];
-                context.currentElement = element;
-                element.update(context);
-                elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
-                for (var j = 0; j < elementTimeouts.length; j++) {
-                    var elementTimeout = elementTimeouts[j];
-                    elementTimeout.action.bind(elementTimeout.element)(context);
-                }
-            };
-            var this_1 = this, elementTimeouts;
-            for (var i = 0; i < this._elements.length; i++) {
-                _loop_1(i);
-            }
-        };
-        Segment.prototype.render = function (context) {
-            var ctx = context.ctx;
-            for (var i = 0; i < this._elements.length; i++) {
-                var element = this._elements[i];
-                ctx.save();
-                element.render(context);
-                ctx.restore();
-            }
-        };
-        // Get the element timeouts for the current frame.
-        Segment.prototype.getCurrentElementTimeouts = function (updateContext) {
-            var currentElementTimeouts = [];
-            var nextElementTimeouts = [];
-            for (var i = 0; i < this._elementTimeouts.length; i++) {
-                var elementTimeout = this._elementTimeouts[i];
-                elementTimeout.elapsed += updateContext.elapsed;
-                if (elementTimeout.elapsed >= elementTimeout.delay) {
-                    currentElementTimeouts.push(elementTimeout);
-                }
-                else {
-                    nextElementTimeouts.push(elementTimeout);
-                }
-            }
-            this._elementTimeouts = nextElementTimeouts;
-            return currentElementTimeouts;
-        };
-        Segment.prototype.checkCollisions = function () {
-            var collisions = [];
-            for (var i = 0; i < this._elements.length; i++) {
-                for (var j = i + 1; j < this._elements.length; j++) {
-                    var first = this._elements[i];
-                    var second = this._elements[j];
-                    if (first.collidesWith(second)) {
-                        first.onCollide(new Lightspeed.ElementCollisionContext(this._engine, second));
-                        second.onCollide(new Lightspeed.ElementCollisionContext(this._engine, first));
-                    }
-                }
-            }
-            return collisions;
-        };
-        return Segment;
-    }());
-    Lightspeed.Segment = Segment;
-    var ElementTimeout = /** @class */ (function () {
-        function ElementTimeout() {
-        }
-        return ElementTimeout;
-    }());
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
@@ -570,23 +460,21 @@ var Lightspeed;
     }());
     Lightspeed.FrameRenderContext = FrameRenderContext;
 })(Lightspeed || (Lightspeed = {}));
+/// <reference path="SceneContext.ts" />
 var Lightspeed;
 (function (Lightspeed) {
-    var FrameUpdateContext = /** @class */ (function () {
-        function FrameUpdateContext(engine, timeStamp, fromPause) {
-            this._engine = engine;
-            this._canvasBox = engine.canvas.box;
-            if (!FrameUpdateContext._lastTimeStamp) {
-                FrameUpdateContext._lastTimeStamp = timeStamp;
-            }
-            this._timeStamp = timeStamp;
-            this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
-            this._delta = this._elapsed / 1000;
+    var FrameUpdateContext = /** @class */ (function (_super) {
+        __extends(FrameUpdateContext, _super);
+        function FrameUpdateContext(engine, scene, elapsed, fromPause) {
+            var _this = _super.call(this, scene) || this;
+            _this._canvasBox = engine.canvas.box;
+            _this._elapsed = elapsed;
+            _this._delta = _this._elapsed / 1000;
             if (fromPause) {
-                this._elapsed = 0;
-                this._delta = 0;
+                _this._elapsed = 0;
+                _this._delta = 0;
             }
-            FrameUpdateContext._lastTimeStamp = timeStamp;
+            return _this;
         }
         Object.defineProperty(FrameUpdateContext.prototype, "elapsed", {
             get: function () {
@@ -609,21 +497,8 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(FrameUpdateContext.prototype, "engine", {
-            get: function () {
-                return this._engine;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        FrameUpdateContext.prototype.activate = function (element) {
-            this._engine.pushElement(element);
-        };
-        FrameUpdateContext.prototype.delay = function (time, action) {
-            this._engine.requestTimeout(time, this.currentElement, action);
-        };
         return FrameUpdateContext;
-    }());
+    }(Lightspeed.SceneContext));
     Lightspeed.FrameUpdateContext = FrameUpdateContext;
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
@@ -675,6 +550,179 @@ var Lightspeed;
         return InertialElement;
     }(Lightspeed.Element));
     Lightspeed.InertialElement = InertialElement;
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var Scene = /** @class */ (function () {
+        function Scene(engine, name) {
+            this._isPaused = false;
+            this._wasPaused = false;
+            this._elements = [];
+            this._elementTimeouts = [];
+            this._engine = engine;
+            this._name = name;
+        }
+        Object.defineProperty(Scene.prototype, "isPaused", {
+            get: function () {
+                return this._isPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Scene.prototype, "wasPaused", {
+            get: function () {
+                return this._wasPaused;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Scene.prototype, "name", {
+            get: function () {
+                return this._name;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Scene.prototype.clear = function () {
+            this._elements = [];
+        };
+        Scene.prototype.pushElement = function (element) {
+            this._elements.push(element);
+            var initContext = new Lightspeed.ElementInitContext(this._engine, this);
+            element.init(initContext);
+            this._elements.sort(function (a, b) { return a.zIndex - b.zIndex; });
+        };
+        Scene.prototype.removeElement = function (element) {
+            var index = this._elements.indexOf(element);
+            if (index !== -1) {
+                this._elements.splice(index, 1);
+            }
+        };
+        Scene.prototype.findElements = function (predicate) {
+            if (!predicate) {
+                return this._elements;
+            }
+            return this._elements.filter(predicate);
+        };
+        Scene.prototype.findFirstElement = function (predicate) {
+            return this.findElements(predicate)[0];
+        };
+        Scene.prototype.findClosestElement = function (position, predicate) {
+            var elements = this.findElements(predicate).filter(function (i) { return i instanceof Lightspeed.InertialElement; }).map(function (i) { return i; });
+            if (!elements.length) {
+                return null;
+            }
+            var closestElement = elements[0];
+            var closestDistance = closestElement.position.distanceTo(position);
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i];
+                var distance = element.position.distanceTo(position);
+                if (distance < closestDistance) {
+                    closestElement = element;
+                    closestDistance = distance;
+                }
+            }
+            return closestElement;
+        };
+        Scene.prototype.pause = function () {
+            this._isPaused = true;
+            this._wasPaused = true;
+            this._engine.onPause(this);
+        };
+        Scene.prototype.unpause = function () {
+            this._isPaused = false;
+            this._engine.onUnpause(this);
+        };
+        Scene.prototype.togglePause = function () {
+            if (this._isPaused) {
+                this.unpause();
+            }
+            else {
+                this.pause();
+            }
+        };
+        Scene.prototype.requestTimeout = function (delay, element, action) {
+            this._elementTimeouts.push({
+                delay: delay,
+                elapsed: 0,
+                element: element,
+                action: action
+            });
+        };
+        Scene.prototype.update = function (context) {
+            // Get element timeouts for this frame.
+            var currentElementTimeouts = this.getCurrentElementTimeouts(context);
+            for (var i = 0; i < currentElementTimeouts.filter(function (p) { return p.element == null; }).length; i++) {
+                var elementTimeout = currentElementTimeouts[i];
+                elementTimeout.action.bind(this)(context);
+            }
+            // Remove dead elements.
+            this._elements = this._elements.filter(function (p) { return !p.isDead; });
+            this.checkCollisions();
+            var _loop_1 = function (i) {
+                var element = this_1._elements[i];
+                context.currentElement = element;
+                element.update(context);
+                elementTimeouts = currentElementTimeouts.filter(function (i) { return i.element === element; });
+                for (var j = 0; j < elementTimeouts.length; j++) {
+                    var elementTimeout = elementTimeouts[j];
+                    elementTimeout.action.bind(elementTimeout.element)(context);
+                }
+            };
+            var this_1 = this, elementTimeouts;
+            for (var i = 0; i < this._elements.length; i++) {
+                _loop_1(i);
+            }
+            this._wasPaused = false;
+        };
+        Scene.prototype.render = function (context) {
+            var ctx = context.ctx;
+            for (var i = 0; i < this._elements.length; i++) {
+                var element = this._elements[i];
+                ctx.save();
+                element.render(context);
+                ctx.restore();
+            }
+        };
+        // Get the element timeouts for the current frame.
+        Scene.prototype.getCurrentElementTimeouts = function (updateContext) {
+            var currentElementTimeouts = [];
+            var nextElementTimeouts = [];
+            for (var i = 0; i < this._elementTimeouts.length; i++) {
+                var elementTimeout = this._elementTimeouts[i];
+                elementTimeout.elapsed += updateContext.elapsed;
+                if (elementTimeout.elapsed >= elementTimeout.delay) {
+                    currentElementTimeouts.push(elementTimeout);
+                }
+                else {
+                    nextElementTimeouts.push(elementTimeout);
+                }
+            }
+            this._elementTimeouts = nextElementTimeouts;
+            return currentElementTimeouts;
+        };
+        Scene.prototype.checkCollisions = function () {
+            var collisions = [];
+            for (var i = 0; i < this._elements.length; i++) {
+                for (var j = i + 1; j < this._elements.length; j++) {
+                    var first = this._elements[i];
+                    var second = this._elements[j];
+                    if (first.collidesWith(second)) {
+                        first.onCollide(new Lightspeed.ElementCollisionContext(this._engine, this, second));
+                        second.onCollide(new Lightspeed.ElementCollisionContext(this._engine, this, first));
+                    }
+                }
+            }
+            return collisions;
+        };
+        return Scene;
+    }());
+    Lightspeed.Scene = Scene;
+    var ElementTimeout = /** @class */ (function () {
+        function ElementTimeout() {
+        }
+        return ElementTimeout;
+    }());
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
@@ -989,8 +1037,8 @@ var Lightspeed;
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 var Megaparsec;
 (function (Megaparsec) {
-    Megaparsec.menuSegment = "Menu Segment";
-    Megaparsec.gamePlaySegment = "Game Play Segment";
+    Megaparsec.menuSceneName = "Menu Scene";
+    Megaparsec.gamePlaySceneName = "Game Play Scene";
     var Game = /** @class */ (function (_super) {
         __extends(Game, _super);
         function Game() {
@@ -1008,12 +1056,19 @@ var Megaparsec;
         });
         Game.prototype.load = function (config) {
             this.clear();
-            this.setSegment(Megaparsec.gamePlaySegment);
+            // Game Play Scene
+            this.setScene(Megaparsec.gamePlaySceneName);
             this.pushElement(new Megaparsec.Background());
             this.pushElement(new Megaparsec.StarField(200));
             this.loadPlayer();
             this.loadTimeline();
-            this.setSegment(Megaparsec.menuSegment);
+            // Menu Scene
+            this.setScene(Megaparsec.menuSceneName);
+            var starField = new Megaparsec.StarField(200);
+            starField.velocity = new Vector(-500, 0);
+            this.pushElement(new Megaparsec.Background());
+            this.pushElement(starField);
+            this.setScene(Megaparsec.gamePlaySceneName);
         };
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
@@ -1023,13 +1078,15 @@ var Megaparsec;
         Game.prototype.loadTimeline = function () {
             this.pushElement(Megaparsec.TimelinePresets.classic());
         };
-        Game.prototype.pause = function () {
-            this.pushElement(this._pauseMessage);
-            _super.prototype.pause.call(this);
+        Game.prototype.onPause = function (scene) {
+            if (scene.name === Megaparsec.gamePlaySceneName) {
+                this.setScene(Megaparsec.menuSceneName);
+            }
         };
-        Game.prototype.unpause = function () {
-            this.removeElement(this._pauseMessage);
-            _super.prototype.unpause.call(this);
+        Game.prototype.onUnpause = function (scene) {
+            if (scene.name === Megaparsec.gamePlaySceneName) {
+                this.setScene(Megaparsec.gamePlaySceneName);
+            }
         };
         Game.prototype.onPlayerKilled = function (message) {
             var _this = this;
@@ -1039,10 +1096,11 @@ var Megaparsec;
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
-            Keyboard.Current.keys(Config.keys.pause, function () { return game.togglePause(); });
+            var gamePlayScene = game.getScene(Megaparsec.gamePlaySceneName);
+            Keyboard.Current.keys(Config.keys.pause, function () { return gamePlayScene.togglePause(); });
             window.addEventListener('blur', function () {
-                if (!game.isPaused) {
-                    game.pause();
+                if (!gamePlayScene.isPaused) {
+                    gamePlayScene.pause();
                 }
             });
         };
@@ -1498,13 +1556,13 @@ var Megaparsec;
         Wave.prototype.updateSerial = function (context) {
             if (!this._activeAgents.length) {
                 var newAgent = this._agents[0];
-                context.activate(newAgent);
+                context.pushElement(newAgent);
                 this._activeAgents.push(newAgent);
             }
         };
         Wave.prototype.updateOffset = function (context) {
             if (this._isFirstUpdate) {
-                context.delay(this._delay, this.udpateOffsetTimeout);
+                context.requestTimeout(this._delay, this, this.udpateOffsetTimeout);
             }
         };
         Wave.prototype.udpateOffsetTimeout = function (context) {
@@ -1513,18 +1571,18 @@ var Megaparsec;
             var agentsLeft = this._agents.filter(function (i) { return _this._activeAgents.indexOf(i) === -1; });
             if (agentsLeft.length) {
                 var newAgent = agentsLeft[0];
-                context.activate(newAgent);
+                context.pushElement(newAgent);
                 this._activeAgents.push(newAgent);
             }
             if (agentsLeft.length > 1) {
-                context.delay(this._interval, this.udpateOffsetTimeout);
+                context.requestTimeout(this._interval, this, this.udpateOffsetTimeout);
             }
         };
         Wave.prototype.updateInstant = function (context) {
             if (this._isFirstUpdate) {
                 for (var i = 0; i < this._agents.length; i++) {
                     var agent = this._agents[i];
-                    context.activate(agent);
+                    context.pushElement(agent);
                     this._activeAgents.push(agent);
                 }
             }
@@ -1993,7 +2051,7 @@ var Megaparsec;
                 }
             }
             if (properties.phase === 'targetting') {
-                var target = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Player; });
+                var target = context.scene.findFirstElement(function (i) { return i instanceof Megaparsec.Player; });
                 if (!target || target.isDead) {
                     agent.velocity = new Vector();
                     return;
@@ -2003,7 +2061,7 @@ var Megaparsec;
                     agent.position.y <= target.position.y && agent.velocity.y < 0 ||
                     agent.position.y >= target.position.y && agent.velocity.y > 0) {
                     if (properties.lastFireElapsed > this._shotIteration) {
-                        context.activate(new Megaparsec.Shot(agent, new Lightspeed.Vector(-this._shotSpeed)));
+                        context.pushElement(new Megaparsec.Shot(agent, new Lightspeed.Vector(-this._shotSpeed)));
                         properties.lastFireElapsed = 0;
                         agent.velocity = new Vector(-this._forwardVelocity, 0);
                         properties.targetX = agent.position.x - this._forwardStep;
@@ -2053,7 +2111,7 @@ var Megaparsec;
             if (properties.phase === 'raining') {
                 if (agent.position.y > context.canvasBox.height) {
                     agent.kill();
-                    context.activate(new Megaparsec.Explosion(agent, new Vector(-200, 0)));
+                    context.pushElement(new Megaparsec.Explosion(agent, new Vector(-200, 0)));
                 }
             }
         };
@@ -2206,7 +2264,7 @@ var Megaparsec;
             properties.lastFireElapsed += context.elapsed;
             if (Keyboard.Current.keys(keys.primaryFire)) {
                 if (!properties.lastFireElapsed || properties.lastFireElapsed > 400) {
-                    context.activate(new Megaparsec.Shot(agent, new Lightspeed.Vector(800)));
+                    context.pushElement(new Megaparsec.Shot(agent, new Lightspeed.Vector(800)));
                     properties.lastFireElapsed = 0;
                 }
             }
@@ -2677,7 +2735,7 @@ var Megaparsec;
             return _this;
         }
         AddElement.prototype.init = function (context) {
-            context.activate(this._element);
+            context.pushElement(this._element);
             this.kill();
         };
         return AddElement;
@@ -2700,8 +2758,8 @@ var Megaparsec;
         }
         ChangeLevel.prototype.init = function (context) {
             var _this = this;
-            this._hills = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
-            this._starField = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
             if (this._hills) {
                 this._hills.acceleration = new Vector(-5, 1);
             }
@@ -2718,7 +2776,7 @@ var Megaparsec;
                 }),
                 Phase.when(function (context) { return _this._elapsed > 6000; })
                     .do(function (context) {
-                    context.activate(_this._nextLevelMessage);
+                    context.pushElement(_this._nextLevelMessage);
                     _this._starField.acceleration = new Vector(5, 0);
                 }),
                 Phase.when(function (context) { return _this._elapsed > 8000 || _this._starField.velocity.x > 0; })
@@ -2727,7 +2785,7 @@ var Megaparsec;
                     hills.position = new Vector(0, 100);
                     hills.velocity = new Vector(-500, -50);
                     hills.acceleration = new Vector(1, -5);
-                    context.activate(hills);
+                    context.pushElement(hills);
                     _this._hills = hills;
                 }),
                 Phase.when(function (context) { return _this._hills.position.y <= 0; })
@@ -2811,7 +2869,7 @@ var Megaparsec;
         };
         Level.prototype.init = function (context) {
             this._elements.forEach(function (element) {
-                context.activate(element);
+                context.pushElement(element);
             });
         };
         Level.prototype.update = function (context) {
@@ -2822,7 +2880,7 @@ var Megaparsec;
                     return;
                 }
                 var nextWave = this._waves.shift();
-                context.activate(nextWave);
+                context.pushElement(nextWave);
                 this._currentWave = nextWave;
             }
         };
@@ -2847,18 +2905,18 @@ var Megaparsec;
         }
         StartGame.prototype.init = function (context) {
             var _this = this;
-            this._hills = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
-            this._starField = context.engine.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
             if (this._hills) {
                 this._hills.kill();
             }
             this._starField.velocity = new Vector(-1000, 0);
-            context.engine.pushElement(this._startGameMessage);
+            context.pushElement(this._startGameMessage);
             this._phases = [
                 Phase.when(function (context) { return _this._elapsed > 4000; })
                     .do(function (context) {
                     _this._startGameMessage.kill();
-                    context.activate(_this._nextLevelMessage);
+                    context.pushElement(_this._nextLevelMessage);
                     _this._starField.acceleration = new Vector(5, 0);
                 }),
                 Phase.when(function (context) { return _this._elapsed > 6000 || _this._starField.velocity.x > 0; })
@@ -2867,7 +2925,7 @@ var Megaparsec;
                     hills.position = new Vector(0, 100);
                     hills.velocity = new Vector(-500, -50);
                     hills.acceleration = new Vector(1, -5);
-                    context.activate(hills);
+                    context.pushElement(hills);
                     _this._hills = hills;
                 }),
                 Phase.when(function (context) { return _this._hills.position.y <= 0; })
@@ -2957,7 +3015,7 @@ var Megaparsec;
                     this.kill();
                     return;
                 }
-                context.activate(this._currentEvent);
+                context.pushElement(this._currentEvent);
             }
         };
         return Timeline;

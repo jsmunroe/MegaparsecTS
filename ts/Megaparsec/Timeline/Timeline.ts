@@ -36,7 +36,7 @@ namespace Megaparsec {
                     return;
                 }
 
-                context.activate(this._currentEvent);
+                context.pushElement(this._currentEvent);
             }
         }
 

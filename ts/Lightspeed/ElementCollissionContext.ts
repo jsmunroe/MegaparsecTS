@@ -1,5 +1,7 @@
+/// <reference path="SceneContext.ts" />
+
 namespace Lightspeed {
-    export class ElementCollisionContext {
+    export class ElementCollisionContext extends SceneContext {
         _engine: Engine;
         _otherElement: Element;
 
@@ -7,15 +9,11 @@ namespace Lightspeed {
             return this._otherElement;
         }
 
-        constructor(engine : Engine, otherElement :Element) {
+        constructor(engine : Engine, scene : Scene, otherElement :Element) {
+            super(scene);
+
             this._engine = engine;
             this._otherElement = otherElement;
         }
-
-        public pushElement(element: Element) {
-            this._engine.pushElement(element);
-        }
-
-
     }
 }

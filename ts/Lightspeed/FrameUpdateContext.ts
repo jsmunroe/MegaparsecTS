@@ -1,39 +1,13 @@
-namespace Lightspeed {
-    export class FrameUpdateContext {
-        private _engine : Engine;
-        
-        private _canvasBox: Box;
+/// <reference path="SceneContext.ts" />
 
-        private _timeStamp: DOMHighResTimeStamp;
+namespace Lightspeed {
+    export class FrameUpdateContext extends SceneContext {
+        private _canvasBox: Box;
 
         private _elapsed: number;
         private _delta: number;
 
-        private static _lastTimeStamp : number;
-
-        public currentElement : Element;
-
-        constructor(engine : Engine, timeStamp : DOMHighResTimeStamp, fromPause? : boolean) {
-            this._engine = engine;
-
-            this._canvasBox = engine.canvas.box;
-            
-            if (!FrameUpdateContext._lastTimeStamp) {
-                FrameUpdateContext._lastTimeStamp = timeStamp;
-            }
-
-            this._timeStamp = timeStamp;
-
-            this._elapsed = timeStamp - FrameUpdateContext._lastTimeStamp;
-            this._delta = this._elapsed / 1000;
-
-            if (fromPause) {
-                this._elapsed = 0;
-                this._delta = 0;
-            }
-
-            FrameUpdateContext._lastTimeStamp = timeStamp;
-        }
+        public currentElement :Element;
 
         public get elapsed() {
             return this._elapsed;
@@ -47,16 +21,18 @@ namespace Lightspeed {
             return this._canvasBox;
         }
 
-        public get engine() :Engine {
-            return this._engine;
-        }
+        constructor(engine : Engine, scene : Scene, elapsed : number, fromPause? : boolean) {
+            super(scene);
 
-        public activate(element: Element): void {
-            this._engine.pushElement(element);
-        }
+            this._canvasBox = engine.canvas.box;
+            
+            this._elapsed = elapsed;
+            this._delta = this._elapsed / 1000;
 
-        public delay(time: number, action: (context: FrameUpdateContext) => void): void {
-            this._engine.requestTimeout(time, this.currentElement, action);
+            if (fromPause) {
+                this._elapsed = 0;
+                this._delta = 0;
+            }
         }
     }
 }

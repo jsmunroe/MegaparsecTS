@@ -98,14 +98,14 @@ namespace Megaparsec {
         private updateSerial(context: Lightspeed.FrameUpdateContext): void {
             if (!this._activeAgents.length) {
                 var newAgent = this._agents[0];
-                context.activate(newAgent);
+                context.pushElement(newAgent);
                 this._activeAgents.push(newAgent);
             }
         }
 
         private updateOffset(context: Lightspeed.FrameUpdateContext): void {
             if (this._isFirstUpdate) {
-                context.delay(this._delay, this.udpateOffsetTimeout);
+                context.requestTimeout(this._delay, this, this.udpateOffsetTimeout);
             }
         }
 
@@ -115,12 +115,12 @@ namespace Megaparsec {
 
             if (agentsLeft.length) {
                 var newAgent = agentsLeft[0];
-                context.activate(newAgent);
+                context.pushElement(newAgent);
                 this._activeAgents.push(newAgent);  
             }
 
             if (agentsLeft.length > 1) {
-                context.delay(this._interval, this.udpateOffsetTimeout);
+                context.requestTimeout(this._interval, this, this.udpateOffsetTimeout);
             }
         }
 
@@ -129,7 +129,7 @@ namespace Megaparsec {
                 for (let i = 0; i < this._agents.length; i++) {
                     const agent = this._agents[i];
 
-                    context.activate(agent);
+                    context.pushElement(agent);
                     this._activeAgents.push(agent);                          
                 }
             }
