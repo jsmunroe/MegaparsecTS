@@ -1068,7 +1068,7 @@ var Megaparsec;
             starField.velocity = new Vector(-500, 0);
             this.pushElement(new Megaparsec.Background());
             this.pushElement(starField);
-            this.setScene(Megaparsec.gamePlaySceneName);
+            this.pushElement(new Megaparsec.MainMenu());
         };
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
@@ -1228,6 +1228,234 @@ var Megaparsec;
     }());
     Megaparsec.Color = Color;
 })(Megaparsec || (Megaparsec = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var UiElement = /** @class */ (function () {
+            function UiElement() {
+                this.backgroundColor = 'transparent';
+                this.borderThickness = 1;
+                this.padding = new UI.Thickness(5);
+                this.margin = new UI.Thickness(0);
+            }
+            UiElement.prototype.render = function (context) {
+                var ctx = context.ctx;
+                ctx.save();
+                ctx.fillStyle = this.backgroundColor;
+                if (this.borderColor && this.borderThickness) {
+                    ctx.strokeStyle = this.borderColor;
+                    ctx.lineWidth = this.borderThickness;
+                }
+                var renderSizeLessMargins = this.renderSize;
+                renderSizeLessMargins = this.margin.reduce(renderSizeLessMargins);
+                renderSizeLessMargins = renderSizeLessMargins.inflate(-this.borderThickness, -this.borderThickness);
+                ctx.fillRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
+                ctx.strokeRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
+                ctx.restore();
+            };
+            UiElement.prototype.arrange = function (context, finalSize) {
+                var size = finalSize;
+                return finalSize;
+            };
+            return UiElement;
+        }());
+        UI.UiElement = UiElement;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="UiElement.ts" />
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var Interface = /** @class */ (function (_super) {
+            __extends(Interface, _super);
+            function Interface(content) {
+                var _this = _super.call(this) || this;
+                _this.content = content;
+                return _this;
+            }
+            Interface.prototype.render = function (context) {
+                var interfaceRenderContext = new UI.InterfaceRenderContext(null, context);
+                var contentBox = this.content.measure(interfaceRenderContext, context.canvasWidth, context.canvasHeight);
+                var finalSize = new Lightspeed.Box(0, 0, Math.min(context.canvasWidth, contentBox.width), Math.min(context.canvasHeight, contentBox.height));
+                this.content.renderSize = this.content.arrange(interfaceRenderContext, finalSize);
+                this.content.renderSize = finalSize;
+                this.content.render(interfaceRenderContext);
+            };
+            return Interface;
+        }(Lightspeed.Element));
+        UI.Interface = Interface;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var InterfaceRenderContext = /** @class */ (function () {
+            function InterfaceRenderContext(parent, frameRenderContext, regionBox) {
+                this._parent = parent;
+                this._frameRenderContext = frameRenderContext;
+                this._regionBox = regionBox || new Lightspeed.Box(0, 0, frameRenderContext.canvasWidth, frameRenderContext.canvasHeight);
+            }
+            Object.defineProperty(InterfaceRenderContext.prototype, "parent", {
+                get: function () {
+                    return this._parent;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InterfaceRenderContext.prototype, "ctx", {
+                get: function () {
+                    return this._frameRenderContext.ctx;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InterfaceRenderContext.prototype, "regionBox", {
+                get: function () {
+                    return this._regionBox;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            return InterfaceRenderContext;
+        }());
+        UI.InterfaceRenderContext = InterfaceRenderContext;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="UiElement.ts" />
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var StackPanel = /** @class */ (function (_super) {
+            __extends(StackPanel, _super);
+            function StackPanel(items) {
+                var _this = _super.call(this) || this;
+                _this.items = [];
+                _this.items = items || [];
+                return _this;
+            }
+            StackPanel.prototype.render = function (context) {
+                for (var i = 0; i < this.items.length; i++) {
+                    var item = this.items[i];
+                    item.render(context);
+                }
+            };
+            StackPanel.prototype.measure = function (context, width, height) {
+                var desiredWidth = 0;
+                var desiredHeight = 0;
+                var remainingHeight = height;
+                for (var i = 0; i < this.items.length; i++) {
+                    var item = this.items[i];
+                    var itemBox = item.measure(context, width, remainingHeight);
+                    desiredWidth = Math.max(desiredWidth, itemBox.width);
+                    desiredHeight += itemBox.height;
+                    remainingHeight = Math.max(remainingHeight - itemBox.height, 0);
+                }
+                return new Lightspeed.Box(0, 0, desiredWidth, desiredHeight);
+            };
+            StackPanel.prototype.arrange = function (context, finalSize) {
+                var nextTop = 0;
+                var desiredWidth = 0;
+                var desiredHeight = 0;
+                for (var i = 0; i < this.items.length; i++) {
+                    var item = this.items[i];
+                    var itemBox = new Lightspeed.Box(item.desiredSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
+                    itemBox = item.arrange(context, itemBox);
+                    item.renderSize = itemBox;
+                    desiredWidth = Math.max(desiredWidth, itemBox.width);
+                    desiredHeight += itemBox.height;
+                    nextTop += itemBox.height;
+                }
+                return new Lightspeed.Box(finalSize.left, finalSize.top, desiredWidth, desiredHeight);
+            };
+            return StackPanel;
+        }(UI.UiElement));
+        UI.StackPanel = StackPanel;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var TextElement = /** @class */ (function (_super) {
+            __extends(TextElement, _super);
+            function TextElement() {
+                var _this = _super !== null && _super.apply(this, arguments) || this;
+                _this.text = '';
+                _this.fontColor = 'white';
+                _this.fontSize = 14;
+                _this.fontFamily = 'Arial';
+                return _this;
+            }
+            TextElement.prototype.render = function (context) {
+                var ctx = context.ctx;
+                ctx.save();
+                _super.prototype.render.call(this, context);
+                ctx.fillStyle = this.fontColor;
+                ctx.font = this.fontSize + "px " + this.fontFamily;
+                var textMetrics = ctx.measureText(this.text);
+                var renderSizeLessPaddingAndBorder = this.renderSize;
+                renderSizeLessPaddingAndBorder = this.margin.reduce(this.renderSize);
+                renderSizeLessPaddingAndBorder = renderSizeLessPaddingAndBorder.inflate(-this.borderThickness, -this.borderThickness);
+                ctx.fillText(this.text, renderSizeLessPaddingAndBorder.left, renderSizeLessPaddingAndBorder.top + this.fontSize);
+                ctx.restore();
+            };
+            TextElement.prototype.measure = function (context, width, height) {
+                var ctx = context.ctx;
+                ctx.save();
+                ctx.font = this.fontSize + "px " + this.fontFamily;
+                var textMetrics = ctx.measureText(this.text);
+                ctx.restore();
+                this.desiredSize = new Lightspeed.Box(0, 0, textMetrics.width, this.fontSize);
+                this.desiredSize = this.margin.increase(this.desiredSize);
+                this.desiredSize = this.padding.increase(this.desiredSize);
+                this.desiredSize = this.desiredSize.inflate(this.borderThickness, this.borderThickness);
+                return this.desiredSize;
+            };
+            return TextElement;
+        }(UI.UiElement));
+        UI.TextElement = TextElement;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var Thickness = /** @class */ (function () {
+            function Thickness(left, top, right, bottom) {
+                if (right && bottom) {
+                    this.left = left;
+                    this.top = top;
+                    this.right = right;
+                    this.bottom = bottom;
+                }
+                else if (top) {
+                    this.left = left;
+                    this.top = top;
+                    this.right = left;
+                    this.bottom = top;
+                }
+                else {
+                    this.left = left;
+                    this.top = left;
+                    this.right = left;
+                    this.bottom = left;
+                }
+            }
+            Thickness.prototype.reduce = function (box) {
+                return new Lightspeed.Box(box.left + this.left, box.top + this.top, box.width - (this.left + this.right), box.height - (this.top + this.bottom));
+            };
+            Thickness.prototype.increase = function (box) {
+                return new Lightspeed.Box(box.left - this.left, box.top - this.top, box.width + (this.left + this.right), box.height + (this.top + this.bottom));
+            };
+            return Thickness;
+        }());
+        UI.Thickness = Thickness;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
 /// <reference path="../../LightSpeed/InertialElement.ts" />
 var Megaparsec;
 (function (Megaparsec) {
@@ -2887,6 +3115,30 @@ var Megaparsec;
         return Level;
     }(Lightspeed.Element));
     Megaparsec.Level = Level;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="../../lightspeed/UI/Interface.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var MainMenu = /** @class */ (function (_super) {
+        __extends(MainMenu, _super);
+        function MainMenu() {
+            var _this = _super.call(this) || this;
+            _this.content = _this.createContent();
+            return _this;
+        }
+        MainMenu.prototype.createContent = function () {
+            var menuStack = new Lightspeed.UI.StackPanel();
+            var banner = new Lightspeed.UI.TextElement();
+            banner.text = 'Megaparsec';
+            banner.borderColor = 'red';
+            banner.borderThickness = 5;
+            banner.backgroundColor = 'blue';
+            menuStack.items.push(banner);
+            return menuStack;
+        };
+        return MainMenu;
+    }(Lightspeed.UI.Interface));
+    Megaparsec.MainMenu = MainMenu;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {

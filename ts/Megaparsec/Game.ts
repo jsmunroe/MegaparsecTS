@@ -43,6 +43,7 @@ namespace Megaparsec {
             starField.velocity = new Vector(-500, 0);
             this.pushElement(new Background());
             this.pushElement(starField);
+            this.pushElement(new MainMenu());
         }
 
         loadPlayer() {
