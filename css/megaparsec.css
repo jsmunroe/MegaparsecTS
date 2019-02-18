@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'TI99Basic';
+    src: url('../fonts/TI99Basic.ttf');
+    /* src: url('/assets/fonts/AcrosstheRoad.woff2') format('woff2'),
+         url('/assets/fonts/AcrosstheRoad.woff') format('woff'),
+         url('/assets/fonts/AcrosstheRoad.ttf') format('truetype'); */
+}
+
 body {
     padding: 0;
     margin: 0;

@@ -12,17 +12,22 @@ namespace Megaparsec {
             var menuStack = new Lightspeed.UI.StackPanel();
             
             var banner = new Lightspeed.UI.TextElement();
+            banner.borderThickness = 1;
+            banner.borderColor = '#22222';
             banner.text = 'Megaparsec';
-            banner.fontSize = 87;
+            banner.fontFamily = 'TI99Basic';
+            banner.fontColor = '#44EEFF'
+            banner.fontSize = 128;
 
             menuStack.items.push(banner);
 
-
             var subtitle = new Lightspeed.UI.TextElement();
-            subtitle.text = 'Alien Craft Advancing';
-            subtitle.borderColor = 'yellow';
-            subtitle.borderThickness = 5;
-            subtitle.backgroundColor = 'green';
+            subtitle.borderThickness = 1;
+            subtitle.borderColor = '#22222';
+            subtitle.text = 'Alien craft advancing';
+            subtitle.fontFamily = 'TI99Basic';
+            subtitle.fontColor = '#44EEFF'
+            subtitle.fontSize = 32;
 
             menuStack.items.push(subtitle);
 
