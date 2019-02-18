@@ -11,8 +11,6 @@ namespace Megaparsec {
 
         private _player: Player;
 
-        private _pauseMessage = new Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
-
         static get messenger() {
             return this._messenger;
         }
@@ -51,7 +49,7 @@ namespace Megaparsec {
         loadPlayer() {
             this._player = new Player();
             this._player.position = new Lightspeed.Vector(100, 100);
-            this.pushElement(this._player);
+            this.getScene(gamePlaySceneName).pushElement(this._player);
         }
 
         loadTimeline() {

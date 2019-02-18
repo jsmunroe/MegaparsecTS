@@ -1091,7 +1091,6 @@ var Megaparsec;
         __extends(Game, _super);
         function Game() {
             var _this = _super.call(this) || this;
-            _this._pauseMessage = new Megaparsec.Message(Config.strings.pauseMessage, Config.strings.pauseSubtext);
             Game.messenger.subscribe(_this, GameMessages.playerKilled, _this.onPlayerKilled);
             return _this;
         }
@@ -1122,7 +1121,7 @@ var Megaparsec;
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
             this._player.position = new Lightspeed.Vector(100, 100);
-            this.pushElement(this._player);
+            this.getScene(Megaparsec.gamePlaySceneName).pushElement(this._player);
         };
         Game.prototype.loadTimeline = function () {
             this.pushElement(Megaparsec.TimelinePresets.classic());
