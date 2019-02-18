@@ -5,43 +5,23 @@ namespace Lightspeed.UI {
         right: number;
         bottom: number;
 
-        constructor(all: number)
-        constructor(vertical: number, horizontal?: number)
-        constructor(left: number, top?: number, right?: number, bottom?: number) {
-            if (right && bottom) {
-                this.left = left;
-                this.top = top;
-                this.right = right;
-                this.bottom = bottom;
-            } else if (top) {
-                this.left = left;
-                this.top = top;
-                this.right = left;
-                this.bottom = top;
-            } else {
-                this.left = left;
-                this.top = left;
-                this.right = left;
-                this.bottom = left;
-            }
+        get half() :Thickness {
+            return new Thickness(this.left * 0.5, this.top * 0.5, this.right * 0.5, this.bottom * 0.5);
         }
 
-        reduce(box: Box) {
-            return new Box(
-                box.left + this.left,
-                box.top + this.top,
-                box.width - (this.left + this.right),
-                box.height - (this.top + this.bottom)
-            );
+        constructor(left: number, top: number, right: number, bottom: number) {
+            this.left = left;
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
         }
 
-        increase(box: Box) {
-            return new Box( 
-                box.left - this.left,
-                box.top - this.top,
-                box.width + (this.left + this.right),
-                box.height + (this.top + this.bottom)
-            );
+        static all(thickness: number) :Thickness {
+            return new Thickness(thickness, thickness, thickness, thickness);
+        }
+
+        static dimensions(horizontal: number, vertical: number) {
+            return new Thickness(horizontal, vertical, horizontal, vertical);
         }
     }
 }

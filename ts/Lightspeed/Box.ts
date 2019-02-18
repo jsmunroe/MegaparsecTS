@@ -37,6 +37,14 @@ namespace Lightspeed {
             return this._top + this._height;
         }
 
+        public get size() :Size {
+            return new Size(this.width, this.height);
+        }
+
+        public get position() :Vector {
+            return new Vector(this.left, this.top);
+        }
+
         public get center() :Vector {
             return new Vector(this.left + this._width / 2, this.top + this.height / 2);
         }
@@ -79,6 +87,14 @@ namespace Lightspeed {
 
         public static fromCenter(center: Vector, width: number, height: number) {
             return new Box(center.x - width/2, center.y - height/2, width, height);
+        }
+
+        public static fromLocationAndSize(location: Vector, size: Size) {
+            return new Box(location.x, location.y, size.width, size.height);
+        }
+
+        public static fromSize(size: Size) {
+            return new Box(0, 0, size.width, size.height);
         }
     }
 }

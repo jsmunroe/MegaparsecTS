@@ -64,6 +64,20 @@ var Lightspeed;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Box.prototype, "size", {
+            get: function () {
+                return new Lightspeed.Size(this.width, this.height);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Box.prototype, "position", {
+            get: function () {
+                return new Lightspeed.Vector(this.left, this.top);
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Box.prototype, "center", {
             get: function () {
                 return new Lightspeed.Vector(this.left + this._width / 2, this.top + this.height / 2);
@@ -100,6 +114,12 @@ var Lightspeed;
         };
         Box.fromCenter = function (center, width, height) {
             return new Box(center.x - width / 2, center.y - height / 2, width, height);
+        };
+        Box.fromLocationAndSize = function (location, size) {
+            return new Box(location.x, location.y, size.width, size.height);
+        };
+        Box.fromSize = function (size) {
+            return new Box(0, 0, size.width, size.height);
         };
         return Box;
     }());
@@ -726,6 +746,34 @@ var Lightspeed;
 })(Lightspeed || (Lightspeed = {}));
 var Lightspeed;
 (function (Lightspeed) {
+    var Size = /** @class */ (function () {
+        function Size(width, height) {
+            this._width = width;
+            this._height = height;
+        }
+        Object.defineProperty(Size.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Size.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Size.prototype.scale = function (scalarX, scalarY) {
+            return new Size(this._width * scalarX, this._height * (scalarY || scalarX));
+        };
+        return Size;
+    }());
+    Lightspeed.Size = Size;
+})(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
     var Sprite = /** @class */ (function () {
         function Sprite(imagePath, width, height, frameCount) {
             var _this = this;
@@ -1236,8 +1284,8 @@ var Lightspeed;
             function UiElement() {
                 this.backgroundColor = 'transparent';
                 this.borderThickness = 1;
-                this.padding = new UI.Thickness(5);
-                this.margin = new UI.Thickness(0);
+                this.padding = UI.Thickness.all(5);
+                this.margin = UI.Thickness.all(0);
             }
             UiElement.prototype.render = function (context) {
                 var ctx = context.ctx;
@@ -1247,16 +1295,31 @@ var Lightspeed;
                     ctx.strokeStyle = this.borderColor;
                     ctx.lineWidth = this.borderThickness;
                 }
-                var renderSizeLessMargins = this.renderSize;
-                renderSizeLessMargins = this.margin.reduce(renderSizeLessMargins);
-                renderSizeLessMargins = renderSizeLessMargins.inflate(-this.borderThickness, -this.borderThickness);
-                ctx.fillRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
-                ctx.strokeRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
+                var renderSizeLessMarginsAndBorder = this.renderSize;
+                renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.margin);
+                renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.getBorderThickness().half);
+                ctx.fillRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
+                ctx.strokeRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
                 ctx.restore();
+            };
+            UiElement.prototype.getBorderThickness = function () {
+                return UI.Thickness.all(this.borderThickness);
             };
             UiElement.prototype.arrange = function (context, finalSize) {
                 var size = finalSize;
                 return finalSize;
+            };
+            UiElement.prototype.reduceBox = function (box, thickness) {
+                return new Lightspeed.Box(box.left + thickness.left, box.top + thickness.top, box.width - (thickness.left + thickness.right), box.height - (thickness.top + thickness.bottom));
+            };
+            UiElement.prototype.increaseBox = function (box, thickness) {
+                return new Lightspeed.Box(box.left - thickness.left, box.top - thickness.top, box.width + (thickness.left + thickness.right), box.height + (thickness.top + thickness.bottom));
+            };
+            UiElement.prototype.reduceSize = function (size, thickness) {
+                return new Lightspeed.Size(size.width - (thickness.left + thickness.right), size.height - (thickness.top + thickness.bottom));
+            };
+            UiElement.prototype.increaseSize = function (size, thickness) {
+                return new Lightspeed.Size(size.width + (thickness.left + thickness.right), size.height + (thickness.top + thickness.bottom));
             };
             return UiElement;
         }());
@@ -1277,10 +1340,10 @@ var Lightspeed;
             }
             Interface.prototype.render = function (context) {
                 var interfaceRenderContext = new UI.InterfaceRenderContext(null, context);
-                var contentBox = this.content.measure(interfaceRenderContext, context.canvasWidth, context.canvasHeight);
-                var finalSize = new Lightspeed.Box(0, 0, Math.min(context.canvasWidth, contentBox.width), Math.min(context.canvasHeight, contentBox.height));
+                var availableSize = new Lightspeed.Size(context.canvasWidth, context.canvasHeight);
+                var contentDesiredSize = this.content.measure(interfaceRenderContext, availableSize);
+                var finalSize = Lightspeed.Box.fromSize(contentDesiredSize);
                 this.content.renderSize = this.content.arrange(interfaceRenderContext, finalSize);
-                this.content.renderSize = finalSize;
                 this.content.render(interfaceRenderContext);
             };
             return Interface;
@@ -1343,26 +1406,25 @@ var Lightspeed;
                     item.render(context);
                 }
             };
-            StackPanel.prototype.measure = function (context, width, height) {
+            StackPanel.prototype.measure = function (context, availableSize) {
                 var desiredWidth = 0;
                 var desiredHeight = 0;
-                var remainingHeight = height;
                 for (var i = 0; i < this.items.length; i++) {
                     var item = this.items[i];
-                    var itemBox = item.measure(context, width, remainingHeight);
-                    desiredWidth = Math.max(desiredWidth, itemBox.width);
-                    desiredHeight += itemBox.height;
-                    remainingHeight = Math.max(remainingHeight - itemBox.height, 0);
+                    var itemDesiredSize = item.measure(context, availableSize);
+                    desiredWidth = Math.max(desiredWidth, itemDesiredSize.width);
+                    desiredHeight += itemDesiredSize.height;
+                    availableSize = new Lightspeed.Size(availableSize.width, Math.max(availableSize.height - itemDesiredSize.height, 0));
                 }
-                return new Lightspeed.Box(0, 0, desiredWidth, desiredHeight);
+                return new Lightspeed.Size(desiredWidth, desiredHeight);
             };
             StackPanel.prototype.arrange = function (context, finalSize) {
-                var nextTop = 0;
+                var nextTop = finalSize.top;
                 var desiredWidth = 0;
                 var desiredHeight = 0;
                 for (var i = 0; i < this.items.length; i++) {
                     var item = this.items[i];
-                    var itemBox = new Lightspeed.Box(item.desiredSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
+                    var itemBox = new Lightspeed.Box(finalSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
                     itemBox = item.arrange(context, itemBox);
                     item.renderSize = itemBox;
                     desiredWidth = Math.max(desiredWidth, itemBox.width);
@@ -1395,24 +1457,26 @@ var Lightspeed;
                 ctx.save();
                 _super.prototype.render.call(this, context);
                 ctx.fillStyle = this.fontColor;
+                ctx.textBaseline = 'top';
                 ctx.font = this.fontSize + "px " + this.fontFamily;
                 var textMetrics = ctx.measureText(this.text);
-                var renderSizeLessPaddingAndBorder = this.renderSize;
-                renderSizeLessPaddingAndBorder = this.margin.reduce(this.renderSize);
-                renderSizeLessPaddingAndBorder = renderSizeLessPaddingAndBorder.inflate(-this.borderThickness, -this.borderThickness);
-                ctx.fillText(this.text, renderSizeLessPaddingAndBorder.left, renderSizeLessPaddingAndBorder.top + this.fontSize);
+                var reducedRenderSize = this.renderSize;
+                reducedRenderSize = this.reduceBox(reducedRenderSize, this.margin);
+                reducedRenderSize = this.reduceBox(reducedRenderSize, this.padding);
+                reducedRenderSize = this.reduceBox(reducedRenderSize, this.getBorderThickness());
+                ctx.fillText(this.text, reducedRenderSize.left, reducedRenderSize.top);
                 ctx.restore();
             };
-            TextElement.prototype.measure = function (context, width, height) {
+            TextElement.prototype.measure = function (context, availableSize) {
                 var ctx = context.ctx;
                 ctx.save();
                 ctx.font = this.fontSize + "px " + this.fontFamily;
                 var textMetrics = ctx.measureText(this.text);
                 ctx.restore();
-                this.desiredSize = new Lightspeed.Box(0, 0, textMetrics.width, this.fontSize);
-                this.desiredSize = this.margin.increase(this.desiredSize);
-                this.desiredSize = this.padding.increase(this.desiredSize);
-                this.desiredSize = this.desiredSize.inflate(this.borderThickness, this.borderThickness);
+                this.desiredSize = new Lightspeed.Size(textMetrics.width, this.fontSize);
+                this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
+                this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
+                this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
                 return this.desiredSize;
             };
             return TextElement;
@@ -1426,30 +1490,23 @@ var Lightspeed;
     (function (UI) {
         var Thickness = /** @class */ (function () {
             function Thickness(left, top, right, bottom) {
-                if (right && bottom) {
-                    this.left = left;
-                    this.top = top;
-                    this.right = right;
-                    this.bottom = bottom;
-                }
-                else if (top) {
-                    this.left = left;
-                    this.top = top;
-                    this.right = left;
-                    this.bottom = top;
-                }
-                else {
-                    this.left = left;
-                    this.top = left;
-                    this.right = left;
-                    this.bottom = left;
-                }
+                this.left = left;
+                this.top = top;
+                this.right = right;
+                this.bottom = bottom;
             }
-            Thickness.prototype.reduce = function (box) {
-                return new Lightspeed.Box(box.left + this.left, box.top + this.top, box.width - (this.left + this.right), box.height - (this.top + this.bottom));
+            Object.defineProperty(Thickness.prototype, "half", {
+                get: function () {
+                    return new Thickness(this.left * 0.5, this.top * 0.5, this.right * 0.5, this.bottom * 0.5);
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Thickness.all = function (thickness) {
+                return new Thickness(thickness, thickness, thickness, thickness);
             };
-            Thickness.prototype.increase = function (box) {
-                return new Lightspeed.Box(box.left - this.left, box.top - this.top, box.width + (this.left + this.right), box.height + (this.top + this.bottom));
+            Thickness.dimensions = function (horizontal, vertical) {
+                return new Thickness(horizontal, vertical, horizontal, vertical);
             };
             return Thickness;
         }());
@@ -3130,10 +3187,14 @@ var Megaparsec;
             var menuStack = new Lightspeed.UI.StackPanel();
             var banner = new Lightspeed.UI.TextElement();
             banner.text = 'Megaparsec';
-            banner.borderColor = 'red';
-            banner.borderThickness = 5;
-            banner.backgroundColor = 'blue';
+            banner.fontSize = 87;
             menuStack.items.push(banner);
+            var subtitle = new Lightspeed.UI.TextElement();
+            subtitle.text = 'Alien Craft Advancing';
+            subtitle.borderColor = 'yellow';
+            subtitle.borderThickness = 5;
+            subtitle.backgroundColor = 'green';
+            menuStack.items.push(subtitle);
             return menuStack;
         };
         return MainMenu;

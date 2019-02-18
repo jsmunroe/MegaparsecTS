@@ -4,11 +4,11 @@ namespace Lightspeed.UI {
         borderColor: string;
         borderThickness: number = 1;
 
-        padding: Thickness = new Thickness(5);
-        margin: Thickness = new Thickness(0);
+        padding: Thickness = Thickness.all(5);
+        margin: Thickness = Thickness.all(0);
 
         renderSize: Box;
-        desiredSize: Box;
+        desiredSize: Size;
 
         render(context: Lightspeed.UI.InterfaceRenderContext): void {
             var ctx = context.ctx;
@@ -21,21 +21,58 @@ namespace Lightspeed.UI {
                 ctx.lineWidth = this.borderThickness;
             }
 
-            var renderSizeLessMargins = this.renderSize;
-            renderSizeLessMargins = this.margin.reduce(renderSizeLessMargins);
-            renderSizeLessMargins = renderSizeLessMargins.inflate(-this.borderThickness, -this.borderThickness);
+            var renderSizeLessMarginsAndBorder = this.renderSize;
+            renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.margin);
+            renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.getBorderThickness().half);
 
-            ctx.fillRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
-            ctx.strokeRect(renderSizeLessMargins.left, renderSizeLessMargins.top, renderSizeLessMargins.width, renderSizeLessMargins.height);
+            ctx.fillRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
+            ctx.strokeRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
             
             ctx.restore();
         }
 
-        abstract measure(context: InterfaceRenderContext, width: number, height: number) : Box;
+        protected getBorderThickness() : Thickness {
+            return Thickness.all(this.borderThickness)
+        }
 
-        arrange(context: InterfaceRenderContext, finalSize: Box) : Box {
+        abstract measure(context: InterfaceRenderContext, availableSize: Size) :Size;
+
+        arrange(context: InterfaceRenderContext, finalSize: Box) :Box {
             var size = finalSize;
             return finalSize;
         }
+
+        protected reduceBox(box: Box, thickness: Thickness) :Box {
+            return new Box(
+                box.left + thickness.left,
+                box.top + thickness.top,
+                box.width - (thickness.left + thickness.right),
+                box.height - (thickness.top + thickness.bottom)
+            );
+        }
+
+        protected increaseBox(box: Box, thickness: Thickness) :Box {
+            return new Box( 
+                box.left - thickness.left,
+                box.top - thickness.top,
+                box.width + (thickness.left + thickness.right),
+                box.height + (thickness.top + thickness.bottom)
+            );
+        }
+
+        protected reduceSize(size: Size, thickness: Thickness) :Size {
+            return new Size(
+                size.width - (thickness.left + thickness.right),
+                size.height - (thickness.top + thickness.bottom)
+            );
+        }
+
+        protected increaseSize(size: Size, thickness: Thickness) :Size{
+            return new Size( 
+                size.width + (thickness.left + thickness.right),
+                size.height + (thickness.top + thickness.bottom)
+            );
+        }
+
     }
 }

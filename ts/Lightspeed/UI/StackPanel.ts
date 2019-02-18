@@ -17,34 +17,32 @@ namespace Lightspeed.UI {
             }
         }
 
-        measure(context: InterfaceRenderContext, width: number, height: number) : Box {
+        measure(context: InterfaceRenderContext, availableSize: Size) :Size {
             var desiredWidth: number = 0;
             var desiredHeight: number = 0;
-
-            var remainingHeight = height;
 
             for (let i = 0; i < this.items.length; i++) {
                 const item = this.items[i];
                 
-                var itemBox = item.measure(context, width, remainingHeight);
-                desiredWidth = Math.max(desiredWidth, itemBox.width);
-                desiredHeight += itemBox.height;     
+                var itemDesiredSize = item.measure(context, availableSize);
+                desiredWidth = Math.max(desiredWidth, itemDesiredSize.width);
+                desiredHeight += itemDesiredSize.height;     
 
-                remainingHeight = Math.max(remainingHeight - itemBox.height, 0);
+                availableSize = new Size(availableSize.width, Math.max(availableSize.height - itemDesiredSize.height, 0));
             }
 
-            return new Box(0, 0, desiredWidth, desiredHeight);
+            return new Size(desiredWidth, desiredHeight);
         }
 
         arrange(context: InterfaceRenderContext, finalSize: Box) : Box {
-            var nextTop: number = 0;
+            var nextTop: number = finalSize.top;
             var desiredWidth: number = 0;
             var desiredHeight: number = 0;
 
             for (let i = 0; i < this.items.length; i++) {
                 const item = this.items[i];
                 
-                var itemBox = new Box(item.desiredSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
+                var itemBox = new Box(finalSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
                 itemBox = item.arrange(context, itemBox);
                 item.renderSize = itemBox;
 

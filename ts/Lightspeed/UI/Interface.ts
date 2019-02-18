@@ -13,10 +13,11 @@ namespace Lightspeed.UI {
         render(context: Lightspeed.FrameRenderContext): void {
             var interfaceRenderContext = new InterfaceRenderContext(null, context);
 
-            var contentBox = this.content.measure(interfaceRenderContext, context.canvasWidth, context.canvasHeight);
-            var finalSize = new Box(0, 0, Math.min(context.canvasWidth, contentBox.width), Math.min(context.canvasHeight, contentBox.height))
+            var availableSize = new Size(context.canvasWidth, context.canvasHeight);
+
+            var contentDesiredSize = this.content.measure(interfaceRenderContext, availableSize);
+            var finalSize = Box.fromSize(contentDesiredSize);
             this.content.renderSize = this.content.arrange(interfaceRenderContext, finalSize);
-            this.content.renderSize = finalSize;
 
             this.content.render(interfaceRenderContext);
         }

@@ -2,8 +2,6 @@ namespace Lightspeed.UI {
     export class TextElement extends UiElement{
         text: string = '';
 
-        
-
         fontColor: string = 'white';
         fontSize: number = 14;
         fontFamily: string = 'Arial';
@@ -15,20 +13,22 @@ namespace Lightspeed.UI {
             super.render(context);
 
             ctx.fillStyle = this.fontColor;
+            ctx.textBaseline = 'top';
 
             ctx.font = `${this.fontSize}px ${this.fontFamily}`;
             var textMetrics = ctx.measureText(this.text);
 
-            var renderSizeLessPaddingAndBorder = this.renderSize;
-            renderSizeLessPaddingAndBorder = this.margin.reduce(this.renderSize);
-            renderSizeLessPaddingAndBorder = renderSizeLessPaddingAndBorder.inflate(-this.borderThickness, -this.borderThickness);
+            var reducedRenderSize = this.renderSize;
+            reducedRenderSize = this.reduceBox(reducedRenderSize, this.margin);
+            reducedRenderSize = this.reduceBox(reducedRenderSize, this.padding);
+            reducedRenderSize = this.reduceBox(reducedRenderSize, this.getBorderThickness())
 
-            ctx.fillText(this.text, renderSizeLessPaddingAndBorder.left, renderSizeLessPaddingAndBorder.top + this.fontSize);
+            ctx.fillText(this.text, reducedRenderSize.left, reducedRenderSize.top);
 
             ctx.restore();
         }
 
-        measure(context: InterfaceRenderContext, width: number, height: number) : Box {
+        measure(context: InterfaceRenderContext, availableSize: Size) :Size {
             var ctx = context.ctx;
             ctx.save();
 
@@ -37,13 +37,14 @@ namespace Lightspeed.UI {
 
             ctx.restore();
 
-            this.desiredSize = new Box(0, 0, textMetrics.width, this.fontSize);
-            this.desiredSize = this.margin.increase(this.desiredSize);
-            this.desiredSize = this.padding.increase(this.desiredSize);
-            this.desiredSize = this.desiredSize.inflate(this.borderThickness, this.borderThickness);
+            this.desiredSize = new Size(textMetrics.width, this.fontSize);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
 
             return this.desiredSize;
 
         }
+
     }
 }

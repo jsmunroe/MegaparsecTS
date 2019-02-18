@@ -13,11 +13,18 @@ namespace Megaparsec {
             
             var banner = new Lightspeed.UI.TextElement();
             banner.text = 'Megaparsec';
-            banner.borderColor = 'red';
-            banner.borderThickness = 5;
-            banner.backgroundColor = 'blue';
+            banner.fontSize = 87;
 
             menuStack.items.push(banner);
+
+
+            var subtitle = new Lightspeed.UI.TextElement();
+            subtitle.text = 'Alien Craft Advancing';
+            subtitle.borderColor = 'yellow';
+            subtitle.borderThickness = 5;
+            subtitle.backgroundColor = 'green';
+
+            menuStack.items.push(subtitle);
 
             return menuStack;
         }
