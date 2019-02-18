@@ -1284,6 +1284,8 @@ var Lightspeed;
             function UiElement() {
                 this.backgroundColor = 'transparent';
                 this.borderThickness = 1;
+                this.horizontalAlignment = HorizontalAlignment.left;
+                this.verticalAlignment = VerticalAlignment.top;
                 this.padding = UI.Thickness.all(5);
                 this.margin = UI.Thickness.all(0);
             }
@@ -1324,6 +1326,20 @@ var Lightspeed;
             return UiElement;
         }());
         UI.UiElement = UiElement;
+        var HorizontalAlignment;
+        (function (HorizontalAlignment) {
+            HorizontalAlignment[HorizontalAlignment["left"] = 0] = "left";
+            HorizontalAlignment[HorizontalAlignment["center"] = 1] = "center";
+            HorizontalAlignment[HorizontalAlignment["right"] = 2] = "right";
+            HorizontalAlignment[HorizontalAlignment["stretch"] = 3] = "stretch";
+        })(HorizontalAlignment = UI.HorizontalAlignment || (UI.HorizontalAlignment = {}));
+        var VerticalAlignment;
+        (function (VerticalAlignment) {
+            VerticalAlignment[VerticalAlignment["top"] = 0] = "top";
+            VerticalAlignment[VerticalAlignment["center"] = 1] = "center";
+            VerticalAlignment[VerticalAlignment["bottom"] = 2] = "bottom";
+            VerticalAlignment[VerticalAlignment["stretch"] = 3] = "stretch";
+        })(VerticalAlignment = UI.VerticalAlignment || (UI.VerticalAlignment = {}));
     })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
 })(Lightspeed || (Lightspeed = {}));
 /// <reference path="UiElement.ts" />
@@ -1343,6 +1359,18 @@ var Lightspeed;
                 var availableSize = new Lightspeed.Size(context.canvasWidth, context.canvasHeight);
                 var contentDesiredSize = this.content.measure(interfaceRenderContext, availableSize);
                 var finalSize = Lightspeed.Box.fromSize(contentDesiredSize);
+                if (this.content.horizontalAlignment === UI.HorizontalAlignment.center) {
+                    finalSize = finalSize.offset(availableSize.width / 2 - contentDesiredSize.width / 2, 0);
+                }
+                else if (this.content.horizontalAlignment === UI.HorizontalAlignment.right) {
+                    finalSize = finalSize.offset(availableSize.width - contentDesiredSize.width, 0);
+                }
+                if (this.content.verticalAlignment === UI.VerticalAlignment.center) {
+                    finalSize = finalSize.offset(0, availableSize.height / 2 - contentDesiredSize.height / 2);
+                }
+                else if (this.content.verticalAlignment === UI.VerticalAlignment.bottom) {
+                    finalSize = finalSize.offset(0, availableSize.height - contentDesiredSize.height);
+                }
                 this.content.renderSize = this.content.arrange(interfaceRenderContext, finalSize);
                 this.content.render(interfaceRenderContext);
             };
@@ -1420,18 +1448,22 @@ var Lightspeed;
             };
             StackPanel.prototype.arrange = function (context, finalSize) {
                 var nextTop = finalSize.top;
-                var desiredWidth = 0;
-                var desiredHeight = 0;
                 for (var i = 0; i < this.items.length; i++) {
                     var item = this.items[i];
-                    var itemBox = new Lightspeed.Box(finalSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
-                    itemBox = item.arrange(context, itemBox);
-                    item.renderSize = itemBox;
-                    desiredWidth = Math.max(desiredWidth, itemBox.width);
-                    desiredHeight += itemBox.height;
-                    nextTop += itemBox.height;
+                    var left = finalSize.left;
+                    var top = nextTop;
+                    if (item.horizontalAlignment === UI.HorizontalAlignment.center) {
+                        left = left + finalSize.width / 2 - item.desiredSize.width / 2;
+                    }
+                    else if (item.horizontalAlignment === UI.HorizontalAlignment.right) {
+                        left = left + finalSize.width - item.desiredSize.width;
+                    }
+                    var itemRenderSize = Lightspeed.Box.fromSize(item.desiredSize).offset(left, top);
+                    itemRenderSize = item.arrange(context, itemRenderSize);
+                    item.renderSize = itemRenderSize;
+                    nextTop += itemRenderSize.height;
                 }
-                return new Lightspeed.Box(finalSize.left, finalSize.top, desiredWidth, desiredHeight);
+                return finalSize;
             };
             return StackPanel;
         }(UI.UiElement));
@@ -3185,21 +3217,21 @@ var Megaparsec;
         }
         MainMenu.prototype.createContent = function () {
             var menuStack = new Lightspeed.UI.StackPanel();
+            menuStack.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
             var banner = new Lightspeed.UI.TextElement();
-            banner.borderThickness = 1;
-            banner.borderColor = '#22222';
             banner.text = 'Megaparsec';
             banner.fontFamily = 'TI99Basic';
             banner.fontColor = '#44EEFF';
             banner.fontSize = 128;
+            banner.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+            banner.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
             menuStack.items.push(banner);
             var subtitle = new Lightspeed.UI.TextElement();
-            subtitle.borderThickness = 1;
-            subtitle.borderColor = '#22222';
             subtitle.text = 'Alien craft advancing';
             subtitle.fontFamily = 'TI99Basic';
             subtitle.fontColor = '#44EEFF';
             subtitle.fontSize = 32;
+            subtitle.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
             menuStack.items.push(subtitle);
             return menuStack;
         };
@@ -3216,7 +3248,6 @@ var Megaparsec;
             _this._phaseNumber = 0;
             _this._phases = [];
             _this._elapsed = 0;
-            _this._startGameMessage = new Megaparsec.Message('Megaparsec', 'Alien Craft Advancing!');
             _this._nextLevelNumber = nextLevelNumber;
             _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
             _this._nextLevelColor = nextLevelColor;
@@ -3230,11 +3261,9 @@ var Megaparsec;
                 this._hills.kill();
             }
             this._starField.velocity = new Vector(-1000, 0);
-            context.pushElement(this._startGameMessage);
             this._phases = [
                 Phase.when(function (context) { return _this._elapsed > 4000; })
                     .do(function (context) {
-                    _this._startGameMessage.kill();
                     context.pushElement(_this._nextLevelMessage);
                     _this._starField.acceleration = new Vector(5, 0);
                 }),

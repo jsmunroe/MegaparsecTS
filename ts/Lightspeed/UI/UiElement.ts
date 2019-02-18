@@ -4,6 +4,9 @@ namespace Lightspeed.UI {
         borderColor: string;
         borderThickness: number = 1;
 
+        horizontalAlignment: HorizontalAlignment = HorizontalAlignment.left;
+        verticalAlignment: VerticalAlignment = VerticalAlignment.top;
+
         padding: Thickness = Thickness.all(5);
         margin: Thickness = Thickness.all(0);
 
@@ -73,6 +76,19 @@ namespace Lightspeed.UI {
                 size.height + (thickness.top + thickness.bottom)
             );
         }
+    }
 
+    export enum HorizontalAlignment {
+        left,
+        center,
+        right,
+        stretch,
+    }
+
+    export enum VerticalAlignment {
+        top,
+        center,
+        bottom,
+        stretch,
     }
 }

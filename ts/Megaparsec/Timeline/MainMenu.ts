@@ -10,24 +10,24 @@ namespace Megaparsec {
 
         private createContent() :Lightspeed.UI.UiElement {
             var menuStack = new Lightspeed.UI.StackPanel();
+            menuStack.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
             
             var banner = new Lightspeed.UI.TextElement();
-            banner.borderThickness = 1;
-            banner.borderColor = '#22222';
             banner.text = 'Megaparsec';
             banner.fontFamily = 'TI99Basic';
             banner.fontColor = '#44EEFF'
             banner.fontSize = 128;
+            banner.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+            banner.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
 
             menuStack.items.push(banner);
 
             var subtitle = new Lightspeed.UI.TextElement();
-            subtitle.borderThickness = 1;
-            subtitle.borderColor = '#22222';
             subtitle.text = 'Alien craft advancing';
             subtitle.fontFamily = 'TI99Basic';
             subtitle.fontColor = '#44EEFF'
             subtitle.fontSize = 32;
+            subtitle.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
 
             menuStack.items.push(subtitle);
 

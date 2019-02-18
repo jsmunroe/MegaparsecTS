@@ -36,22 +36,27 @@ namespace Lightspeed.UI {
 
         arrange(context: InterfaceRenderContext, finalSize: Box) : Box {
             var nextTop: number = finalSize.top;
-            var desiredWidth: number = 0;
-            var desiredHeight: number = 0;
 
             for (let i = 0; i < this.items.length; i++) {
                 const item = this.items[i];
                 
-                var itemBox = new Box(finalSize.left, nextTop, item.desiredSize.width, item.desiredSize.height);
-                itemBox = item.arrange(context, itemBox);
-                item.renderSize = itemBox;
+                var left = finalSize.left;
+                var top = nextTop;
 
-                desiredWidth = Math.max(desiredWidth, itemBox.width);
-                desiredHeight += itemBox.height;     
-                nextTop += itemBox.height;
+                if (item.horizontalAlignment === HorizontalAlignment.center) {
+                    left = left + finalSize.width / 2 - item.desiredSize.width / 2;
+                } else if (item.horizontalAlignment === HorizontalAlignment.right) {
+                    left = left + finalSize.width - item.desiredSize.width;
+                }
+
+                var itemRenderSize = Box.fromSize(item.desiredSize).offset(left, top);
+                itemRenderSize = item.arrange(context, itemRenderSize);
+                item.renderSize = itemRenderSize;
+
+                nextTop += itemRenderSize.height;
             }
 
-            return new Box(finalSize.left, finalSize.top, desiredWidth, desiredHeight);
+            return finalSize;
         }
 
     }

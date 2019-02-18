@@ -8,16 +8,12 @@ namespace Megaparsec {
         private _hills: Hills;
         private _starField: StarField;
 
-        private _startGameMessage: Message;
-
         private _nextLevelNumber: number;
         private _nextLevelMessage: Message;
         private _nextLevelColor: string;
 
         constructor(nextLevelNumber: number, nextLevelColor: string) {
             super();
-
-            this._startGameMessage = new Message('Megaparsec', 'Alien Craft Advancing!');
 
             this._nextLevelNumber = nextLevelNumber;
             this._nextLevelMessage = new Message(`Level ${this._nextLevelNumber}`);
@@ -33,12 +29,10 @@ namespace Megaparsec {
             }
 
             this._starField.velocity = new Vector(-1000, 0);
-            context.pushElement(this._startGameMessage);
 
             this._phases = [
                 Phase.when(context => this._elapsed > 4000)
                     .do(context => {
-                        this._startGameMessage.kill();
                         context.pushElement(this._nextLevelMessage);
                         this._starField.acceleration = new Vector(5, 0);
                     }),
