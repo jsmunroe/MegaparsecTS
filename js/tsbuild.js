@@ -1110,6 +1110,7 @@ var Megaparsec;
             this.pushElement(new Megaparsec.StarField(200));
             this.loadPlayer();
             this.loadTimeline();
+            this.pause();
             // Menu Scene
             this.setScene(Megaparsec.menuSceneName);
             var starField = new Megaparsec.StarField(200);

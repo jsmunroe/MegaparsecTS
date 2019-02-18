@@ -36,6 +36,8 @@ namespace Megaparsec {
 
             this.loadTimeline();
 
+            this.pause();
+
             // Menu Scene
             this.setScene(menuSceneName);
 
