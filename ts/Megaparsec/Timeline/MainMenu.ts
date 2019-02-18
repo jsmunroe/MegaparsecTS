@@ -31,6 +31,19 @@ namespace Megaparsec {
 
             menuStack.items.push(subtitle);
 
+            var newGameButtonText = new Lightspeed.UI.TextElement();
+            newGameButtonText.text = 'Begin New Advengure'
+            newGameButtonText.fontFamily = 'TI99Basic';
+            newGameButtonText.fontColor = '#44EEFF'
+            newGameButtonText.fontSize 
+            newGameButtonText.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+
+            var newGameButton = new Lightspeed.UI.Button();
+            newGameButton.content = newGameButtonText;
+            newGameButton.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+
+            //menuStack.items.push(newGameButton);
+
             return menuStack;
         }
     }

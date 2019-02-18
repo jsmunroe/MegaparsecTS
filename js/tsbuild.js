@@ -1347,6 +1347,36 @@ var Lightspeed;
 (function (Lightspeed) {
     var UI;
     (function (UI) {
+        var Button = /** @class */ (function (_super) {
+            __extends(Button, _super);
+            function Button() {
+                var _this = _super !== null && _super.apply(this, arguments) || this;
+                _this.hilightColor = 'white';
+                return _this;
+            }
+            Button.prototype.render = function (context) {
+                var ctx = context.ctx;
+                ctx.save();
+                _super.prototype.render.call(this, context);
+                this.content.render(context);
+                ctx.restore();
+            };
+            Button.prototype.measure = function (context, availableSize) {
+                var ctx = context.ctx;
+                ctx.save();
+                this.desiredSize = this.content.measure(context, availableSize);
+                return this.desiredSize;
+            };
+            return Button;
+        }(UI.UiElement));
+        UI.Button = Button;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="UiElement.ts" />
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
         var Interface = /** @class */ (function (_super) {
             __extends(Interface, _super);
             function Interface(content) {
@@ -3233,6 +3263,16 @@ var Megaparsec;
             subtitle.fontSize = 32;
             subtitle.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
             menuStack.items.push(subtitle);
+            var newGameButtonText = new Lightspeed.UI.TextElement();
+            newGameButtonText.text = 'Begin New Advengure';
+            newGameButtonText.fontFamily = 'TI99Basic';
+            newGameButtonText.fontColor = '#44EEFF';
+            newGameButtonText.fontSize;
+            newGameButtonText.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+            var newGameButton = new Lightspeed.UI.Button();
+            newGameButton.content = newGameButtonText;
+            newGameButton.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+            //menuStack.items.push(newGameButton);
             return menuStack;
         };
         return MainMenu;
