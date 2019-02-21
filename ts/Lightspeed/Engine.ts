@@ -1,5 +1,5 @@
 namespace Lightspeed {
-    export class Engine {
+    export class Engine implements ICanvasEventListener {
         private _canvas :Canvas;
 
         private _scenes :Scene[] = [];
@@ -17,6 +17,10 @@ namespace Lightspeed {
 
         constructor() {
             this._canvas = Canvas.find();
+
+            if (this._canvas) {
+                this._canvas.addEventListener(this);
+            }
 
             this.setScene('Default Scene');
         }
@@ -122,6 +126,10 @@ namespace Lightspeed {
 
         run() {
             requestAnimationFrame(this.runFrame.bind(this));
+        }
+
+        handleMouseDown(event: MouseEvent) {
+
         }
     }
 

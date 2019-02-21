@@ -6,8 +6,11 @@ namespace Lightspeed {
         private _scaleWidth : number;
         private _scaleFactor : number = 1;
 
+        private _eventListeners : ICanvasEventListener[] = [];
+
         constructor(canvas :HTMLCanvasElement){
             this._htmlCanvas = canvas;
+            this._htmlCanvas.addEventListener('mousedown', event => this.onCanvasMouseDown(event))
         }
 
         get width() : number {
@@ -35,7 +38,7 @@ namespace Lightspeed {
             ctx.restore();
         }
 
-        public scaleWidth(width: number) {
+        scaleWidth(width: number) {
             this._scaleHeight = null;
             this._scaleWidth = width;
 
@@ -45,7 +48,7 @@ namespace Lightspeed {
             this._htmlCanvas.height = this._htmlCanvas.scrollHeight;
         }
 
-        public scaleHeight(height: number) {
+        scaleHeight(height: number) {
             this._scaleHeight = height;
             this._scaleWidth = null;
 
@@ -55,7 +58,7 @@ namespace Lightspeed {
             this._htmlCanvas.height = this._htmlCanvas.scrollHeight;
         }
 
-        public static find() :Canvas {
+        static find() :Canvas {
             var htmlCanvas : HTMLCanvasElement = document.querySelector('canvas');
 
             var canvas = new Canvas(htmlCanvas);
@@ -72,5 +75,19 @@ namespace Lightspeed {
 
             return canvas;
         }
+
+        addEventListener(eventListener: ICanvasEventListener) {
+            this._eventListeners.push(eventListener);
+        }
+
+        private onCanvasMouseDown(event :MouseEvent) :void {
+            this._eventListeners.forEach(eventListener => {
+                eventListener.handleMouseDown(event);
+            });
+        }
+    }
+
+    export interface ICanvasEventListener {
+        handleMouseDown(event: MouseEvent) :void;
     }
 }

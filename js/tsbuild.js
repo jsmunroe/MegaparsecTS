@@ -129,8 +129,11 @@ var Lightspeed;
 (function (Lightspeed) {
     var Canvas = /** @class */ (function () {
         function Canvas(canvas) {
+            var _this = this;
             this._scaleFactor = 1;
+            this._eventListeners = [];
             this._htmlCanvas = canvas;
+            this._htmlCanvas.addEventListener('mousedown', function (event) { return _this.onCanvasMouseDown(event); });
         }
         Object.defineProperty(Canvas.prototype, "width", {
             get: function () {
@@ -188,6 +191,14 @@ var Lightspeed;
                 canvas.scaleWidth(scaleWidth);
             }
             return canvas;
+        };
+        Canvas.prototype.addEventListener = function (eventListener) {
+            this._eventListeners.push(eventListener);
+        };
+        Canvas.prototype.onCanvasMouseDown = function (event) {
+            this._eventListeners.forEach(function (eventListener) {
+                eventListener.handleMouseDown(event);
+            });
         };
         return Canvas;
     }());
@@ -346,6 +357,9 @@ var Lightspeed;
         function Engine() {
             this._scenes = [];
             this._canvas = Lightspeed.Canvas.find();
+            if (this._canvas) {
+                this._canvas.addEventListener(this);
+            }
             this.setScene('Default Scene');
         }
         Object.defineProperty(Engine.prototype, "currentScene", {
@@ -439,6 +453,8 @@ var Lightspeed;
         };
         Engine.prototype.run = function () {
             requestAnimationFrame(this.runFrame.bind(this));
+        };
+        Engine.prototype.handleMouseDown = function (event) {
         };
         return Engine;
     }());
@@ -3333,10 +3349,10 @@ var Megaparsec;
                     .add(Lightspeed.UI.Button, function (q) {
                     q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
                     q.add(Lightspeed.UI.TextElement, function (r) {
-                        r.text = 'Begin New Advengure';
+                        r.text = 'Begin New Adventure';
                         r.fontFamily = 'TI99Basic';
                         r.fontColor = '#44EEFF';
-                        r.fontSize;
+                        r.fontSize = 24;
                         r.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
                     });
                 });
