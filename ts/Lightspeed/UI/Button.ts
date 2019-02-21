@@ -1,7 +1,8 @@
 /// <reference path="UiElement.ts" />
+/// <reference path="ContentContainer.ts" />
 
 namespace Lightspeed.UI {
-    export class Button extends UiElement{
+    export class Button extends ContentContainer{
         content: UiElement;
 
         hilightColor: string = 'white';
@@ -17,15 +18,7 @@ namespace Lightspeed.UI {
             ctx.restore();        
         }
 
-        measure(context: InterfaceRenderContext, availableSize: Size) :Size {
-            var ctx = context.ctx;
-            ctx.save();
 
-            this.desiredSize = this.content.measure(context, availableSize);
-
-            return this.desiredSize;
-
-        }
 
     }
 }

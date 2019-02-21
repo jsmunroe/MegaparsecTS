@@ -10,6 +10,15 @@ namespace Lightspeed.UI {
             this.content = content;
         }
 
+        build<TElement extends UiElement>(tElement: new () => TElement, setProperties?: (element: TElement) => void) : Interface {
+            var element = new tElement();
+
+            setProperties && setProperties(element);
+
+            this.content = element;
+            return this;
+        }
+
         render(context: Lightspeed.FrameRenderContext): void {
             var interfaceRenderContext = new InterfaceRenderContext(null, context);
 

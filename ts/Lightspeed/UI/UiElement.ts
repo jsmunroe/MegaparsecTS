@@ -46,6 +46,10 @@ namespace Lightspeed.UI {
         }
 
         protected reduceBox(box: Box, thickness: Thickness) :Box {
+            if (!thickness) {
+                return box;
+            }
+
             return new Box(
                 box.left + thickness.left,
                 box.top + thickness.top,
@@ -55,7 +59,11 @@ namespace Lightspeed.UI {
         }
 
         protected increaseBox(box: Box, thickness: Thickness) :Box {
-            return new Box( 
+            if (!thickness) {
+                return box;
+            }
+
+           return new Box( 
                 box.left - thickness.left,
                 box.top - thickness.top,
                 box.width + (thickness.left + thickness.right),
@@ -64,13 +72,21 @@ namespace Lightspeed.UI {
         }
 
         protected reduceSize(size: Size, thickness: Thickness) :Size {
-            return new Size(
+            if (!thickness) {
+                return size;
+            }
+
+           return new Size(
                 size.width - (thickness.left + thickness.right),
                 size.height - (thickness.top + thickness.bottom)
             );
         }
 
         protected increaseSize(size: Size, thickness: Thickness) :Size{
+            if (!thickness) {
+                return size;
+            }
+
             return new Size( 
                 size.width + (thickness.left + thickness.right),
                 size.height + (thickness.top + thickness.bottom)

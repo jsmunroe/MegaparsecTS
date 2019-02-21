@@ -5,46 +5,37 @@ namespace Megaparsec {
         constructor() {
             super();
 
-            this.content = this.createContent();
-        }
+            this.build(Lightspeed.UI.StackPanel, p => {
+                p.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
 
-        private createContent() :Lightspeed.UI.UiElement {
-            var menuStack = new Lightspeed.UI.StackPanel();
-            menuStack.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            
-            var banner = new Lightspeed.UI.TextElement();
-            banner.text = 'Megaparsec';
-            banner.fontFamily = 'TI99Basic';
-            banner.fontColor = '#44EEFF'
-            banner.fontSize = 128;
-            banner.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            banner.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
+                p.add(Lightspeed.UI.TextElement, q => {
+                    q.text = 'Megaparsec';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF'
+                    q.fontSize = 128;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
+                })
 
-            menuStack.items.push(banner);
+                .add(Lightspeed.UI.TextElement, q => {
+                    q.text = 'Alien craft advancing';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF'
+                    q.fontSize = 32;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                })
 
-            var subtitle = new Lightspeed.UI.TextElement();
-            subtitle.text = 'Alien craft advancing';
-            subtitle.fontFamily = 'TI99Basic';
-            subtitle.fontColor = '#44EEFF'
-            subtitle.fontSize = 32;
-            subtitle.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-
-            menuStack.items.push(subtitle);
-
-            var newGameButtonText = new Lightspeed.UI.TextElement();
-            newGameButtonText.text = 'Begin New Advengure'
-            newGameButtonText.fontFamily = 'TI99Basic';
-            newGameButtonText.fontColor = '#44EEFF'
-            newGameButtonText.fontSize 
-            newGameButtonText.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-
-            var newGameButton = new Lightspeed.UI.Button();
-            newGameButton.content = newGameButtonText;
-            newGameButton.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-
-            //menuStack.items.push(newGameButton);
-
-            return menuStack;
+                .add(Lightspeed.UI.Button, q => {
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.add(Lightspeed.UI.TextElement, r => {
+                        r.text = 'Begin New Adventure'
+                        r.fontFamily = 'TI99Basic';
+                        r.fontColor = '#44EEFF'
+                        r.fontSize = 24;
+                        r.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    });
+                });
+            });
         }
     }
 }

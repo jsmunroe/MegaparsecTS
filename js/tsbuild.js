@@ -1312,15 +1312,27 @@ var Lightspeed;
                 return finalSize;
             };
             UiElement.prototype.reduceBox = function (box, thickness) {
+                if (!thickness) {
+                    return box;
+                }
                 return new Lightspeed.Box(box.left + thickness.left, box.top + thickness.top, box.width - (thickness.left + thickness.right), box.height - (thickness.top + thickness.bottom));
             };
             UiElement.prototype.increaseBox = function (box, thickness) {
+                if (!thickness) {
+                    return box;
+                }
                 return new Lightspeed.Box(box.left - thickness.left, box.top - thickness.top, box.width + (thickness.left + thickness.right), box.height + (thickness.top + thickness.bottom));
             };
             UiElement.prototype.reduceSize = function (size, thickness) {
+                if (!thickness) {
+                    return size;
+                }
                 return new Lightspeed.Size(size.width - (thickness.left + thickness.right), size.height - (thickness.top + thickness.bottom));
             };
             UiElement.prototype.increaseSize = function (size, thickness) {
+                if (!thickness) {
+                    return size;
+                }
                 return new Lightspeed.Size(size.width + (thickness.left + thickness.right), size.height + (thickness.top + thickness.bottom));
             };
             return UiElement;
@@ -1342,7 +1354,45 @@ var Lightspeed;
         })(VerticalAlignment = UI.VerticalAlignment || (UI.VerticalAlignment = {}));
     })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
 })(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var ContentContainer = /** @class */ (function (_super) {
+            __extends(ContentContainer, _super);
+            function ContentContainer(content) {
+                var _this = _super.call(this) || this;
+                _this.content = content;
+                return _this;
+            }
+            ContentContainer.prototype.add = function (tElement, setProperties) {
+                var element = new tElement();
+                setProperties && setProperties(element);
+                this.content = element;
+                return this;
+            };
+            ContentContainer.prototype.measure = function (context, availableSize) {
+                if (!this.content) {
+                    return new Lightspeed.Size(0, 0);
+                }
+                this.desiredSize = this.content.measure(context, availableSize);
+                return this.desiredSize;
+            };
+            ContentContainer.prototype.arrange = function (context, finalSize) {
+                if (!this.content) {
+                    return finalSize;
+                }
+                var renderSize = this.content.arrange(context, finalSize);
+                this.content.renderSize = renderSize;
+                return renderSize;
+            };
+            return ContentContainer;
+        }(UI.UiElement));
+        UI.ContentContainer = ContentContainer;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
 /// <reference path="UiElement.ts" />
+/// <reference path="ContentContainer.ts" />
 var Lightspeed;
 (function (Lightspeed) {
     var UI;
@@ -1361,14 +1411,8 @@ var Lightspeed;
                 this.content.render(context);
                 ctx.restore();
             };
-            Button.prototype.measure = function (context, availableSize) {
-                var ctx = context.ctx;
-                ctx.save();
-                this.desiredSize = this.content.measure(context, availableSize);
-                return this.desiredSize;
-            };
             return Button;
-        }(UI.UiElement));
+        }(UI.ContentContainer));
         UI.Button = Button;
     })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
 })(Lightspeed || (Lightspeed = {}));
@@ -1384,6 +1428,12 @@ var Lightspeed;
                 _this.content = content;
                 return _this;
             }
+            Interface.prototype.build = function (tElement, setProperties) {
+                var element = new tElement();
+                setProperties && setProperties(element);
+                this.content = element;
+                return this;
+            };
             Interface.prototype.render = function (context) {
                 var interfaceRenderContext = new UI.InterfaceRenderContext(null, context);
                 var availableSize = new Lightspeed.Size(context.canvasWidth, context.canvasHeight);
@@ -1445,7 +1495,31 @@ var Lightspeed;
         UI.InterfaceRenderContext = InterfaceRenderContext;
     })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
 })(Lightspeed || (Lightspeed = {}));
+var Lightspeed;
+(function (Lightspeed) {
+    var UI;
+    (function (UI) {
+        var ItemsContainer = /** @class */ (function (_super) {
+            __extends(ItemsContainer, _super);
+            function ItemsContainer(items) {
+                var _this = _super.call(this) || this;
+                _this.items = [];
+                _this.items = items || [];
+                return _this;
+            }
+            ItemsContainer.prototype.add = function (tElement, setProperties) {
+                var element = new tElement();
+                setProperties && setProperties(element);
+                this.items.push(element);
+                return this;
+            };
+            return ItemsContainer;
+        }(UI.UiElement));
+        UI.ItemsContainer = ItemsContainer;
+    })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
+})(Lightspeed || (Lightspeed = {}));
 /// <reference path="UiElement.ts" />
+/// <reference path="ItemsContainer.ts" />
 var Lightspeed;
 (function (Lightspeed) {
     var UI;
@@ -1453,10 +1527,7 @@ var Lightspeed;
         var StackPanel = /** @class */ (function (_super) {
             __extends(StackPanel, _super);
             function StackPanel(items) {
-                var _this = _super.call(this) || this;
-                _this.items = [];
-                _this.items = items || [];
-                return _this;
+                return _super.call(this, items) || this;
             }
             StackPanel.prototype.render = function (context) {
                 for (var i = 0; i < this.items.length; i++) {
@@ -1496,7 +1567,7 @@ var Lightspeed;
                 return finalSize;
             };
             return StackPanel;
-        }(UI.UiElement));
+        }(UI.ItemsContainer));
         UI.StackPanel = StackPanel;
     })(UI = Lightspeed.UI || (Lightspeed.UI = {}));
 })(Lightspeed || (Lightspeed = {}));
@@ -3242,39 +3313,36 @@ var Megaparsec;
         __extends(MainMenu, _super);
         function MainMenu() {
             var _this = _super.call(this) || this;
-            _this.content = _this.createContent();
+            _this.build(Lightspeed.UI.StackPanel, function (p) {
+                p.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                p.add(Lightspeed.UI.TextElement, function (q) {
+                    q.text = 'Megaparsec';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF';
+                    q.fontSize = 128;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
+                })
+                    .add(Lightspeed.UI.TextElement, function (q) {
+                    q.text = 'Alien craft advancing';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF';
+                    q.fontSize = 32;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                })
+                    .add(Lightspeed.UI.Button, function (q) {
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.add(Lightspeed.UI.TextElement, function (r) {
+                        r.text = 'Begin New Advengure';
+                        r.fontFamily = 'TI99Basic';
+                        r.fontColor = '#44EEFF';
+                        r.fontSize;
+                        r.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    });
+                });
+            });
             return _this;
         }
-        MainMenu.prototype.createContent = function () {
-            var menuStack = new Lightspeed.UI.StackPanel();
-            menuStack.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            var banner = new Lightspeed.UI.TextElement();
-            banner.text = 'Megaparsec';
-            banner.fontFamily = 'TI99Basic';
-            banner.fontColor = '#44EEFF';
-            banner.fontSize = 128;
-            banner.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            banner.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
-            menuStack.items.push(banner);
-            var subtitle = new Lightspeed.UI.TextElement();
-            subtitle.text = 'Alien craft advancing';
-            subtitle.fontFamily = 'TI99Basic';
-            subtitle.fontColor = '#44EEFF';
-            subtitle.fontSize = 32;
-            subtitle.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            menuStack.items.push(subtitle);
-            var newGameButtonText = new Lightspeed.UI.TextElement();
-            newGameButtonText.text = 'Begin New Advengure';
-            newGameButtonText.fontFamily = 'TI99Basic';
-            newGameButtonText.fontColor = '#44EEFF';
-            newGameButtonText.fontSize;
-            newGameButtonText.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            var newGameButton = new Lightspeed.UI.Button();
-            newGameButton.content = newGameButtonText;
-            newGameButton.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-            //menuStack.items.push(newGameButton);
-            return menuStack;
-        };
         return MainMenu;
     }(Lightspeed.UI.Interface));
     Megaparsec.MainMenu = MainMenu;

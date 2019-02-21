@@ -1,13 +1,10 @@
 /// <reference path="UiElement.ts" />
+/// <reference path="ItemsContainer.ts" />
 
 namespace Lightspeed.UI {
-    export class StackPanel extends UiElement {
-        items: UiElement[] = [];
-
+    export class StackPanel extends ItemsContainer {
         constructor(items?: UiElement[]) {
-            super();
-            
-            this.items = items || [];
+            super(items);
         }
 
         render(context: Lightspeed.UI.InterfaceRenderContext): void {
