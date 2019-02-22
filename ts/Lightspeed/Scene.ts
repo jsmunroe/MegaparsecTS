@@ -158,6 +158,19 @@ namespace Lightspeed {
             }
         }
 
+        handleMouseDown(mouseLocation: Vector): any {
+            this._elements.forEach(i => {
+                i.onMouseDown(mouseLocation);
+            });
+        }
+
+        handleMouseMove(mouseLocation: Vector): any {
+            this._elements.forEach(i => {
+                i.onMouseMove(mouseLocation);
+            });
+        }
+
+
         // Get the element timeouts for the current frame.
         private getCurrentElementTimeouts(updateContext: FrameUpdateContext) {
             var currentElementTimeouts = [];

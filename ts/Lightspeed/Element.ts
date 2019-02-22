@@ -40,6 +40,14 @@ namespace Lightspeed {
             this.onKill();
         }
 
+        onMouseDown(mouseLocation: Vector): void {
+            // optionally overloaded by extending classes to handle mouse down event.
+        }
+
+        onMouseMove(mouseLocation: Vector): void {
+            // optionally overloaded by extending classes to handle mouse move event.
+        }
+
         onCollide(context: Lightspeed.ElementCollisionContext): void {
             // optionally overloaded by extending classes to handle collission.
         }

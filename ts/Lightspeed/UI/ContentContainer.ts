@@ -37,5 +37,14 @@ namespace Lightspeed.UI {
 
             return renderSize;
         }
+
+        hitTest(mouseLocation: Vector) :UiElement {
+            if (!this.content) {
+                return this;
+            }
+            
+            var element = this.content.hitTest(mouseLocation);
+            element && element.onMouseDown(mouseLocation);
+        }
     }
 }

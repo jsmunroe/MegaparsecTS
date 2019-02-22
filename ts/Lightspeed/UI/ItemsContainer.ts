@@ -18,5 +18,18 @@ namespace Lightspeed.UI {
             return this;
         }
 
+        hitTest(mouseLocation: Vector) :UiElement {
+            var item :UiElement;
+
+            var hitItem :UiElement;
+            this.items.forEach(i => {
+                if (i.renderSize && i.renderSize.containsVector(mouseLocation)) {
+                    hitItem = i.hitTest(mouseLocation);
+                }
+            });
+
+            return hitItem || this;
+        }
+
     }
 }

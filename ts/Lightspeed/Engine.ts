@@ -128,9 +128,14 @@ namespace Lightspeed {
             requestAnimationFrame(this.runFrame.bind(this));
         }
 
-        handleMouseDown(event: MouseEvent) {
-
+        onMouseDown(mouseLocation: Vector) :void {
+            this.currentScene.handleMouseDown(mouseLocation);
         }
+
+        onMouseMove(mouseLocation: Vector) :void {
+            this.currentScene.handleMouseMove(mouseLocation);
+        }
+
     }
 
 }

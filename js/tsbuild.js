@@ -109,8 +109,11 @@ var Lightspeed;
         Box.prototype.collides = function (other) {
             return (this.left < other.right && this.right > other.left && this.top < other.bottom && this.bottom > other.top);
         };
-        Box.prototype.contains = function (other) {
+        Box.prototype.containsBox = function (other) {
             return (this.left <= other.left && this.right >= other.right && this.top <= other.top && this.bottom >= other.bottom);
+        };
+        Box.prototype.containsVector = function (vector) {
+            return (this.left <= vector.x && this.right >= vector.x && this.top <= vector.y && this.bottom >= vector.y);
         };
         Box.fromCenter = function (center, width, height) {
             return new Box(center.x - width / 2, center.y - height / 2, width, height);
@@ -134,6 +137,7 @@ var Lightspeed;
             this._eventListeners = [];
             this._htmlCanvas = canvas;
             this._htmlCanvas.addEventListener('mousedown', function (event) { return _this.onCanvasMouseDown(event); });
+            this._htmlCanvas.addEventListener('mousemove', function (event) { return _this.onCanvasMouseMove(event); });
         }
         Object.defineProperty(Canvas.prototype, "width", {
             get: function () {
@@ -196,8 +200,15 @@ var Lightspeed;
             this._eventListeners.push(eventListener);
         };
         Canvas.prototype.onCanvasMouseDown = function (event) {
+            var mouseLocation = new Lightspeed.Vector(event.x / this._scaleFactor, event.y / this._scaleFactor);
             this._eventListeners.forEach(function (eventListener) {
-                eventListener.handleMouseDown(event);
+                eventListener.onMouseDown(mouseLocation);
+            });
+        };
+        Canvas.prototype.onCanvasMouseMove = function (event) {
+            var mouseLocation = new Lightspeed.Vector(event.x / this._scaleFactor, event.y / this._scaleFactor);
+            this._eventListeners.forEach(function (eventListener) {
+                eventListener.onMouseMove(mouseLocation);
             });
         };
         return Canvas;
@@ -241,6 +252,12 @@ var Lightspeed;
         Element.prototype.kill = function () {
             this._isDead = true;
             this.onKill();
+        };
+        Element.prototype.onMouseDown = function (mouseLocation) {
+            // optionally overloaded by extending classes to handle mouse down event.
+        };
+        Element.prototype.onMouseMove = function (mouseLocation) {
+            // optionally overloaded by extending classes to handle mouse move event.
         };
         Element.prototype.onCollide = function (context) {
             // optionally overloaded by extending classes to handle collission.
@@ -454,7 +471,11 @@ var Lightspeed;
         Engine.prototype.run = function () {
             requestAnimationFrame(this.runFrame.bind(this));
         };
-        Engine.prototype.handleMouseDown = function (event) {
+        Engine.prototype.onMouseDown = function (mouseLocation) {
+            this.currentScene.handleMouseDown(mouseLocation);
+        };
+        Engine.prototype.onMouseMove = function (mouseLocation) {
+            this.currentScene.handleMouseMove(mouseLocation);
         };
         return Engine;
     }());
@@ -719,6 +740,16 @@ var Lightspeed;
                 element.render(context);
                 ctx.restore();
             }
+        };
+        Scene.prototype.handleMouseDown = function (mouseLocation) {
+            this._elements.forEach(function (i) {
+                i.onMouseDown(mouseLocation);
+            });
+        };
+        Scene.prototype.handleMouseMove = function (mouseLocation) {
+            this._elements.forEach(function (i) {
+                i.onMouseMove(mouseLocation);
+            });
         };
         // Get the element timeouts for the current frame.
         Scene.prototype.getCurrentElementTimeouts = function (updateContext) {
@@ -1313,12 +1344,28 @@ var Lightspeed;
                     ctx.strokeStyle = this.borderColor;
                     ctx.lineWidth = this.borderThickness;
                 }
+                this.drawBox(context);
+                ctx.restore();
+            };
+            UiElement.prototype.drawBox = function (context) {
+                var ctx = context.ctx;
                 var renderSizeLessMarginsAndBorder = this.renderSize;
                 renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.margin);
                 renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.getBorderThickness().half);
                 ctx.fillRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
                 ctx.strokeRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
-                ctx.restore();
+            };
+            UiElement.prototype.onMouseDown = function (mouseLocation) {
+                // Optionally handled by subclasses to handle mouse down event.
+            };
+            UiElement.prototype.onMouseMove = function (mouseLocation) {
+                // Optionally handled by subclasses to handle mouse move event.
+            };
+            UiElement.prototype.onMouseEnter = function (mouseLocation) {
+                // Optionally handled by subclasses to handle mouse enter event.
+            };
+            UiElement.prototype.onMouseLeave = function (mouseLocation) {
+                // Optionally handled by subclasses to handle mouse enter event.
             };
             UiElement.prototype.getBorderThickness = function () {
                 return UI.Thickness.all(this.borderThickness);
@@ -1402,6 +1449,13 @@ var Lightspeed;
                 this.content.renderSize = renderSize;
                 return renderSize;
             };
+            ContentContainer.prototype.hitTest = function (mouseLocation) {
+                if (!this.content) {
+                    return this;
+                }
+                var element = this.content.hitTest(mouseLocation);
+                element && element.onMouseDown(mouseLocation);
+            };
             return ContentContainer;
         }(UI.UiElement));
         UI.ContentContainer = ContentContainer;
@@ -1417,15 +1471,38 @@ var Lightspeed;
             __extends(Button, _super);
             function Button() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
-                _this.hilightColor = 'white';
+                _this.hilightColor = 'RGBA(255, 255, 255, 0.3)';
+                _this._isMouseOver = false;
                 return _this;
             }
+            Object.defineProperty(Button.prototype, "isMouseOver", {
+                get: function () {
+                    return this._isMouseOver;
+                },
+                enumerable: true,
+                configurable: true
+            });
             Button.prototype.render = function (context) {
                 var ctx = context.ctx;
                 ctx.save();
                 _super.prototype.render.call(this, context);
+                if (this._isMouseOver) {
+                    ctx.fillStyle = this.hilightColor;
+                    _super.prototype.drawBox.call(this, context);
+                }
                 this.content.render(context);
                 ctx.restore();
+            };
+            Button.prototype.hitTest = function (mouseLocation) {
+                return this;
+            };
+            Button.prototype.onMouseDown = function (mouseLocation) {
+            };
+            Button.prototype.onMouseEnter = function (mouseLocation) {
+                this._isMouseOver = true;
+            };
+            Button.prototype.onMouseLeave = function (mouseLocation) {
+                this._isMouseOver = false;
             };
             return Button;
         }(UI.ContentContainer));
@@ -1469,6 +1546,28 @@ var Lightspeed;
                 }
                 this.content.renderSize = this.content.arrange(interfaceRenderContext, finalSize);
                 this.content.render(interfaceRenderContext);
+            };
+            Interface.prototype.onMouseDown = function (mouseLocation) {
+                if (!this.content || !this.content.renderSize || !this.content.renderSize.containsVector(mouseLocation)) {
+                    return;
+                }
+                var element = this.content.hitTest(mouseLocation);
+                element && element.onMouseDown(mouseLocation);
+            };
+            Interface.prototype.onMouseMove = function (mouseLocation) {
+                var element;
+                if (this.content && this.content.renderSize && this.content.renderSize.containsVector(mouseLocation)) {
+                    var element = this.content.hitTest(mouseLocation);
+                }
+                if (element !== this._lastMoveElement) {
+                    this._lastMoveElement && this._lastMoveElement.onMouseLeave(mouseLocation);
+                    element.onMouseEnter(mouseLocation);
+                    this._lastMoveElement = element;
+                }
+                if (!element) {
+                    return;
+                }
+                element.onMouseDown(mouseLocation);
             };
             return Interface;
         }(Lightspeed.Element));
@@ -1528,6 +1627,16 @@ var Lightspeed;
                 setProperties && setProperties(element);
                 this.items.push(element);
                 return this;
+            };
+            ItemsContainer.prototype.hitTest = function (mouseLocation) {
+                var item;
+                var hitItem;
+                this.items.forEach(function (i) {
+                    if (i.renderSize && i.renderSize.containsVector(mouseLocation)) {
+                        hitItem = i.hitTest(mouseLocation);
+                    }
+                });
+                return hitItem || this;
             };
             return ItemsContainer;
         }(UI.UiElement));
@@ -1627,6 +1736,9 @@ var Lightspeed;
                 this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
                 return this.desiredSize;
+            };
+            TextElement.prototype.hitTest = function (mouseLocation) {
+                return this;
             };
             return TextElement;
         }(UI.UiElement));
@@ -2154,7 +2266,7 @@ var Megaparsec;
         }
         Constrainer.prototype.constrain = function (gameObject, context) {
             var constraintBox = context.canvasBox;
-            if (constraintBox.contains(gameObject.box) || !gameObject.controllerProperties.constrain) {
+            if (constraintBox.containsBox(gameObject.box) || !gameObject.controllerProperties.constrain) {
                 return true;
             }
             if (this._horizontalConstraintTopology == ConstraintToplogy.Block) {
@@ -3348,6 +3460,8 @@ var Megaparsec;
                 })
                     .add(Lightspeed.UI.Button, function (q) {
                     q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.padding = Lightspeed.UI.Thickness.all(15);
+                    q.margin = Lightspeed.UI.Thickness.all(15);
                     q.add(Lightspeed.UI.TextElement, function (r) {
                         r.text = 'Begin New Adventure';
                         r.fontFamily = 'TI99Basic';

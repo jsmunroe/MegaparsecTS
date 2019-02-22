@@ -46,5 +46,8 @@ namespace Lightspeed.UI {
 
         }
 
+        hitTest(mouseLocation: Vector) :UiElement {
+            return this;
+        }
     }
 }

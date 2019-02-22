@@ -4,6 +4,8 @@ namespace Lightspeed.UI {
     export class Interface extends Element {
         content: UiElement;
 
+        private _lastMoveElement: UiElement;
+
         constructor(content?: UiElement) {
             super();
 
@@ -43,5 +45,36 @@ namespace Lightspeed.UI {
 
             this.content.render(interfaceRenderContext);
         }
+
+        onMouseDown(mouseLocation: Vector): void {
+            if (!this.content || !this.content.renderSize || !this.content.renderSize.containsVector(mouseLocation)) {
+                return;
+            }
+
+            var element = this.content.hitTest(mouseLocation);
+            element && element.onMouseDown(mouseLocation);
+        }
+
+        onMouseMove(mouseLocation: Vector): void {
+            var element :UiElement;
+
+            if (this.content && this.content.renderSize && this.content.renderSize.containsVector(mouseLocation)) {
+                var element = this.content.hitTest(mouseLocation);
+            }
+
+            if (element !== this._lastMoveElement) {
+                this._lastMoveElement && this._lastMoveElement.onMouseLeave(mouseLocation);
+                element.onMouseEnter(mouseLocation);
+                
+                this._lastMoveElement = element;
+            }
+
+            if (!element) {
+                return;
+            }
+
+            element.onMouseDown(mouseLocation);
+        }
+
     }
 }

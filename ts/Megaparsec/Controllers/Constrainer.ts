@@ -11,7 +11,7 @@ namespace Megaparsec {
         constrain(gameObject: GameObject, context: Lightspeed.FrameUpdateContext) :boolean {
             var constraintBox = context.canvasBox;
 
-            if (constraintBox.contains(gameObject.box) || !gameObject.controllerProperties.constrain) {
+            if (constraintBox.containsBox(gameObject.box) || !gameObject.controllerProperties.constrain) {
                 return true;
             }
 

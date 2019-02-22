@@ -11,6 +11,7 @@ namespace Lightspeed {
         constructor(canvas :HTMLCanvasElement){
             this._htmlCanvas = canvas;
             this._htmlCanvas.addEventListener('mousedown', event => this.onCanvasMouseDown(event))
+            this._htmlCanvas.addEventListener('mousemove', event => this.onCanvasMouseMove(event))
         }
 
         get width() : number {
@@ -81,13 +82,23 @@ namespace Lightspeed {
         }
 
         private onCanvasMouseDown(event :MouseEvent) :void {
+            var mouseLocation = new Vector(event.x / this._scaleFactor, event.y / this._scaleFactor);
+
             this._eventListeners.forEach(eventListener => {
-                eventListener.handleMouseDown(event);
+                eventListener.onMouseDown(mouseLocation);
             });
         }
+
+        private onCanvasMouseMove(event: MouseEvent) :void {
+            var mouseLocation = new Vector(event.x / this._scaleFactor, event.y / this._scaleFactor);
+
+            this._eventListeners.forEach(eventListener => {
+                eventListener.onMouseMove(mouseLocation);
+            });        }
     }
 
     export interface ICanvasEventListener {
-        handleMouseDown(event: MouseEvent) :void;
+        onMouseDown(mouseLocation: Vector) :void;
+        onMouseMove(mouseLocation: Vector) :void;
     }
 }

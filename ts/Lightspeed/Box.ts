@@ -81,8 +81,12 @@ namespace Lightspeed {
             return (this.left < other.right && this.right > other.left && this.top < other.bottom && this.bottom > other.top);
         }
         
-        public contains(other: Box) :boolean {
+        public containsBox(other: Box) :boolean {
             return (this.left <= other.left && this.right >= other.right && this.top <= other.top && this.bottom >= other.bottom);
+        }
+        
+        public containsVector(vector: Vector) :boolean {
+            return (this.left <= vector.x && this.right >= vector.x && this.top <= vector.y && this.bottom >= vector.y);
         }
 
         public static fromCenter(center: Vector, width: number, height: number) {

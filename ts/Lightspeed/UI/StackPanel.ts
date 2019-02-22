@@ -55,6 +55,5 @@ namespace Lightspeed.UI {
 
             return finalSize;
         }
-
     }
 }

@@ -24,14 +24,38 @@ namespace Lightspeed.UI {
                 ctx.lineWidth = this.borderThickness;
             }
 
+            this.drawBox(context);
+            
+            ctx.restore();
+        }
+
+        protected drawBox(context: Lightspeed.UI.InterfaceRenderContext): void {
+            var ctx = context.ctx;
+
             var renderSizeLessMarginsAndBorder = this.renderSize;
             renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.margin);
             renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.getBorderThickness().half);
 
             ctx.fillRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
             ctx.strokeRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
-            
-            ctx.restore();
+        }
+
+        abstract hitTest(mouseLocation: Vector) :UiElement;
+
+        onMouseDown(mouseLocation: Vector): void {
+            // Optionally handled by subclasses to handle mouse down event.
+        }
+
+        onMouseMove(mouseLocation: Vector): void {
+            // Optionally handled by subclasses to handle mouse move event.
+        }
+
+        onMouseEnter(mouseLocation: Vector): void {
+            // Optionally handled by subclasses to handle mouse enter event.
+        }
+
+        onMouseLeave(mouseLocation: Vector): void {
+            // Optionally handled by subclasses to handle mouse enter event.
         }
 
         protected getBorderThickness() : Thickness {
