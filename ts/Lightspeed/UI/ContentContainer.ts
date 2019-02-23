@@ -23,6 +23,9 @@ namespace Lightspeed.UI {
             }
 
             this.desiredSize = this.content.measure(context, availableSize);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
+            this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
 
             return this.desiredSize;
         }
@@ -32,10 +35,15 @@ namespace Lightspeed.UI {
                 return finalSize;
             }
 
-            var renderSize = this.content.arrange(context, finalSize);
+            var childFinalSize = finalSize;
+            childFinalSize = this.reduceBox(childFinalSize, this.margin);
+            childFinalSize = this.reduceBox(childFinalSize, this.padding);
+            childFinalSize = this.reduceBox(childFinalSize, this.getBorderThickness());
+
+            var renderSize = this.content.arrange(context, childFinalSize);
             this.content.renderSize = renderSize;
 
-            return renderSize;
+            return finalSize;
         }
 
         hitTest(mouseLocation: Vector) :UiElement {

@@ -27,13 +27,14 @@ namespace Megaparsec {
 
                 .add(Lightspeed.UI.Button, q => {
                     q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    q.padding = Lightspeed.UI.Thickness.all(15);
-                    q.margin = Lightspeed.UI.Thickness.all(15);
+                    q.padding = Lightspeed.UI.Thickness.all(10);
+                    q.margin = new Lightspeed.UI.Thickness(0, 15, 0, 0);
                     q.add(Lightspeed.UI.TextElement, r => {
                         r.text = 'Begin New Adventure'
                         r.fontFamily = 'TI99Basic';
                         r.fontColor = '#44EEFF'
                         r.fontSize = 24;
+                        r.margin = new Lightspeed.UI.Thickness(0, -15, 0, 0);
                         r.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
                     });
                 });

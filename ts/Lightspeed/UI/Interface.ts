@@ -64,7 +64,7 @@ namespace Lightspeed.UI {
 
             if (element !== this._lastMoveElement) {
                 this._lastMoveElement && this._lastMoveElement.onMouseLeave(mouseLocation);
-                element.onMouseEnter(mouseLocation);
+                element && element.onMouseEnter(mouseLocation);
                 
                 this._lastMoveElement = element;
             }

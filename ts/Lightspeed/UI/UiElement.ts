@@ -18,6 +18,7 @@ namespace Lightspeed.UI {
             ctx.save();
 
             ctx.fillStyle = this.backgroundColor;
+            ctx.strokeStyle = 'transparent'
             
             if (this.borderColor && this.borderThickness) {
                 ctx.strokeStyle = this.borderColor;
@@ -26,6 +27,30 @@ namespace Lightspeed.UI {
 
             this.drawBox(context);
             
+            ctx.restore();
+        }
+
+        protected drawDebug(context: Lightspeed.UI.InterfaceRenderContext): void {
+            var ctx = context.ctx;
+
+            ctx.save();
+            ctx.lineWidth = 1;
+
+            var box = this.renderSize;
+
+            ctx.strokeStyle = 'blue'
+            ctx.strokeRect(box.left, box.top, box.width, box.height);
+
+            box = this.reduceBox(box, this.margin);
+
+            ctx.strokeStyle = 'orange'
+            ctx.strokeRect(box.left, box.top, box.width, box.height);
+
+            box = this.reduceBox(box, this.getBorderThickness().half);
+
+            ctx.strokeStyle = 'green'
+            ctx.strokeRect(box.left, box.top, box.width, box.height);
+
             ctx.restore();
         }
 

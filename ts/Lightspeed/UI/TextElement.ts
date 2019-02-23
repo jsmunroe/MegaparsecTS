@@ -12,12 +12,14 @@ namespace Lightspeed.UI {
             
             super.render(context);
 
+            //this.drawDebug(context);
+
             ctx.fillStyle = this.fontColor;
             ctx.textBaseline = 'top';
 
             ctx.font = `${this.fontSize}px ${this.fontFamily}`;
             var textMetrics = ctx.measureText(this.text);
-
+            
             var reducedRenderSize = this.renderSize;
             reducedRenderSize = this.reduceBox(reducedRenderSize, this.margin);
             reducedRenderSize = this.reduceBox(reducedRenderSize, this.padding);
