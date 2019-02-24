@@ -985,6 +985,10 @@ var Lightspeed;
     Lightspeed.Vector = Vector;
 })(Lightspeed || (Lightspeed = {}));
 var Config = {
+    branding: {
+        logoImagePath: './img/logo.png',
+        logoDuration: 3000,
+    },
     keys: {
         moveUp: ['ArrowUp', 'KeyW'],
         moveDown: ['ArrowDown', 'KeyS'],
@@ -1160,10 +1164,11 @@ var Megaparsec;
         });
         Game.prototype.load = function (config) {
             this._flowContainer = new Megaparsec.FlowContainer(this)
+                .add(new Megaparsec.LogoFlow())
                 .add(new Megaparsec.MainMenuFlow())
                 .add(new Megaparsec.GamePlayFlow())
                 .add(new Megaparsec.PauseFlow());
-            this._flowContainer.load(GameSceneNames.mainMenu);
+            this._flowContainer.load(GameSceneNames.logo);
         };
         Game.run = function () {
             var game = Game.s_current = new Game();
@@ -2577,6 +2582,60 @@ var Megaparsec;
         return Level;
     }(Lightspeed.Element));
     Megaparsec.Level = Level;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Logo = /** @class */ (function (_super) {
+        __extends(Logo, _super);
+        function Logo(logoFlow) {
+            var _this = _super.call(this) || this;
+            _this.zIndex = 100;
+            _this._logoFlow = logoFlow;
+            _this._logo = new Lightspeed.Sprite(Config.branding.logoImagePath, 300, 250);
+            return _this;
+        }
+        Logo.prototype.init = function (context) {
+            var _this = this;
+            context.requestTimeout(Config.branding.logoDuration, this, function (context) { return _this._logoFlow.startGame(); });
+        };
+        Logo.prototype.render = function (context) {
+            var canvasBox = new Box(0, 0, context.canvasWidth, context.canvasHeight);
+            this._logo.draw(context.ctx, canvasBox.center);
+        };
+        return Logo;
+    }(Lightspeed.Element));
+    Megaparsec.Logo = Logo;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="FlowContainer.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var LogoFlow = /** @class */ (function (_super) {
+        __extends(LogoFlow, _super);
+        function LogoFlow() {
+            return _super.call(this, Megaparsec.GameSceneNames.logo) || this;
+        }
+        Object.defineProperty(LogoFlow.prototype, "canContinue", {
+            get: function () {
+                return false;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        LogoFlow.prototype.load = function (game) {
+            game.setScene(this.name);
+            game.clear();
+            var starField = new Megaparsec.StarField(200);
+            starField.velocity = new Vector(-500, 0);
+            game.pushElement(new Megaparsec.Background());
+            game.pushElement(starField);
+            game.pushElement(new Megaparsec.Logo(this));
+        };
+        LogoFlow.prototype.startGame = function () {
+            this._container.load(Megaparsec.GameSceneNames.mainMenu);
+        };
+        return LogoFlow;
+    }(Megaparsec.FlowElement));
+    Megaparsec.LogoFlow = LogoFlow;
 })(Megaparsec || (Megaparsec = {}));
 /// <reference path="../../lightspeed/UI/Interface.ts" />
 var Megaparsec;

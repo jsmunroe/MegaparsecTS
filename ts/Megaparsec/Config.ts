@@ -1,4 +1,8 @@
 var Config = {
+    branding: {
+        logoImagePath: './img/logo.png',
+        logoDuration: 3000,
+    },
     keys: {
         moveUp : ['ArrowUp', 'KeyW'],
         moveDown: ['ArrowDown', 'KeyS'],

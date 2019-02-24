@@ -18,11 +18,12 @@ namespace Megaparsec {
 
         load(config: any) {
             this._flowContainer = new FlowContainer(this)
+                .add(new LogoFlow())
                 .add(new MainMenuFlow())
                 .add(new GamePlayFlow())
                 .add(new PauseFlow());
 
-            this._flowContainer.load(GameSceneNames.mainMenu);
+            this._flowContainer.load(GameSceneNames.logo);
         }
  
         static run() :void {
