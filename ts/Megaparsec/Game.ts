@@ -1,15 +1,12 @@
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 
 namespace Megaparsec {
-    export const menuSceneName = "Menu Scene";
-    export const gamePlaySceneName = "Game Play Scene";
 
     export class Game extends Lightspeed.Engine {
         private static s_current: Game;
-        
         private static _messenger: Lightspeed.Utils.Messenger = new Lightspeed.Utils.Messenger();
 
-        private _player: Player;
+        private _flowContainer: FlowContainer;
 
         static get messenger() {
             return this._messenger;
@@ -17,47 +14,14 @@ namespace Megaparsec {
 
         constructor() {
             super();
-
-            Game.messenger.subscribe(this, GameMessages.playerKilled, this.onPlayerKilled);
         }
 
         load(config: any) {
-            this.clear();
-            
-            // Game Play Scene
-            this.setScene(gamePlaySceneName);
-            
-            this.pushElement(new Background());
-            this.pushElement(new StarField(200));
+            this._flowContainer = new FlowContainer(this)
+                .add(new MainMenuFlow())
+                .add(new GamePlayFlow());
 
-            this.loadPlayer();
-
-            this.loadTimeline();
-
-            this.pause();
-
-            // Menu Scene
-            this.setScene(menuSceneName);
-
-            var starField = new StarField(200);
-            starField.velocity = new Vector(-500, 0);
-            this.pushElement(new Background());
-            this.pushElement(starField);
-            this.pushElement(new MainMenu(this));
-        }
-
-        loadPlayer() {
-            this._player = new Player();
-            this._player.position = new Lightspeed.Vector(100, 100);
-            this.getScene(gamePlaySceneName).pushElement(this._player);
-        }
-
-        loadTimeline() {
-            this.pushElement(TimelinePresets.classic());
-        }
-
-        private onPlayerKilled(message: Lightspeed.Utils.Message) {
-            this.requestTimeout(500, null, context => this.loadPlayer());
+            this._flowContainer.load(GameSceneNames.mainMenu);
         }
  
         static run() :void {
@@ -66,18 +30,25 @@ namespace Megaparsec {
             game.run();
 
             Keyboard.Current.keys(Config.keys.pause, () => {
-                game.getScene(gamePlaySceneName).pause();
-                game.setScene(menuSceneName);
+                game.getScene(GameSceneNames.gamePlay).pause();
+                game.setScene(GameSceneNames.mainMenu);
             });
 
             window.addEventListener('blur', () => {
-                game.getScene(gamePlaySceneName).pause();
-                game.setScene(menuSceneName);
+                game.getScene(GameSceneNames.gamePlay).pause();
+                game.setScene(GameSceneNames.mainMenu);
             });
         }
     }
 
     export class GameMessages {
         public static readonly playerKilled: string = 'playerKilled';
+    }
+
+    export class GameSceneNames {
+        public static readonly logo: string = 'Logo';
+        public static readonly gamePlay: string = 'GamePlay';
+        public static readonly mainMenu: string = 'MainMenu';
+        public static readonly pause: string = 'Pause';
     }
 }

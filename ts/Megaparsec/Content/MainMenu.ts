@@ -2,12 +2,12 @@
 
 namespace Megaparsec {
     export class MainMenu extends Lightspeed.UI.Interface {
-        private _game: Game;
+        private _mainMenuFlow: MainMenuFlow;
 
-        constructor(game: Game) {
+        constructor(mainMenuFlow: MainMenuFlow) {
             super();
 
-            this._game = game;
+            this._mainMenuFlow = mainMenuFlow;
 
             var buttonStyle = {
                 horizontalAlignment: Lightspeed.UI.HorizontalAlignment.center,
@@ -49,27 +49,17 @@ namespace Megaparsec {
                 .add(Lightspeed.UI.Button, q => {
                     q.addText('Begin New Adventure');
                     q.applyStyle(buttonStyle);
-                    q.addMouseDownHandler(v => this.onNewGame());
+                    q.addMouseDownHandler(v => this._mainMenuFlow.newGame());
                 })
 
                 .add(Lightspeed.UI.Button, q => {
                     q.addText('Continue Adventure');
                     q.applyStyle(buttonStyle);
-                    q.isEnabled = false;
-                    q.addMouseDownHandler(v => this.onContinueGame());
+                    q.isEnabled = this._mainMenuFlow.canContinue;
+                    q.addMouseDownHandler(v => this._mainMenuFlow.continueGame());;
                 });
 
             });
-        }
-
-        private onNewGame() {
-            this._game.setScene(gamePlaySceneName);
-            this._game.unpause();
-        }
-
-        private onContinueGame() {
-            this._game.setScene(gamePlaySceneName);
-            this._game.unpause();
         }
     }
 }

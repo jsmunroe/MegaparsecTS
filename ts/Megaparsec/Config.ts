@@ -7,10 +7,6 @@ var Config = {
         pause: ['Escape'],
         primaryFire: ['Space']
     }, 
-    strings: {
-        pauseMessage: 'Paused',
-        pauseSubtext: 'Press "P" to resume.',
-    },
     styles: {
         textColor: '#AAA',
         messageTextSize: 30,

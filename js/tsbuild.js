@@ -993,10 +993,6 @@ var Config = {
         pause: ['Escape'],
         primaryFire: ['Space']
     },
-    strings: {
-        pauseMessage: 'Paused',
-        pauseSubtext: 'Press "P" to resume.',
-    },
     styles: {
         textColor: '#AAA',
         messageTextSize: 30,
@@ -1150,14 +1146,10 @@ var Lightspeed;
 /// <reference path="../LightSpeed/Utils/Messenger.ts" />
 var Megaparsec;
 (function (Megaparsec) {
-    Megaparsec.menuSceneName = "Menu Scene";
-    Megaparsec.gamePlaySceneName = "Game Play Scene";
     var Game = /** @class */ (function (_super) {
         __extends(Game, _super);
         function Game() {
-            var _this = _super.call(this) || this;
-            Game.messenger.subscribe(_this, GameMessages.playerKilled, _this.onPlayerKilled);
-            return _this;
+            return _super.call(this) || this;
         }
         Object.defineProperty(Game, "messenger", {
             get: function () {
@@ -1167,45 +1159,22 @@ var Megaparsec;
             configurable: true
         });
         Game.prototype.load = function (config) {
-            this.clear();
-            // Game Play Scene
-            this.setScene(Megaparsec.gamePlaySceneName);
-            this.pushElement(new Megaparsec.Background());
-            this.pushElement(new Megaparsec.StarField(200));
-            this.loadPlayer();
-            this.loadTimeline();
-            this.pause();
-            // Menu Scene
-            this.setScene(Megaparsec.menuSceneName);
-            var starField = new Megaparsec.StarField(200);
-            starField.velocity = new Vector(-500, 0);
-            this.pushElement(new Megaparsec.Background());
-            this.pushElement(starField);
-            this.pushElement(new Megaparsec.MainMenu(this));
-        };
-        Game.prototype.loadPlayer = function () {
-            this._player = new Megaparsec.Player();
-            this._player.position = new Lightspeed.Vector(100, 100);
-            this.getScene(Megaparsec.gamePlaySceneName).pushElement(this._player);
-        };
-        Game.prototype.loadTimeline = function () {
-            this.pushElement(Megaparsec.TimelinePresets.classic());
-        };
-        Game.prototype.onPlayerKilled = function (message) {
-            var _this = this;
-            this.requestTimeout(500, null, function (context) { return _this.loadPlayer(); });
+            this._flowContainer = new Megaparsec.FlowContainer(this)
+                .add(new Megaparsec.MainMenuFlow())
+                .add(new Megaparsec.GamePlayFlow());
+            this._flowContainer.load(GameSceneNames.mainMenu);
         };
         Game.run = function () {
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
             Keyboard.Current.keys(Config.keys.pause, function () {
-                game.getScene(Megaparsec.gamePlaySceneName).pause();
-                game.setScene(Megaparsec.menuSceneName);
+                game.getScene(GameSceneNames.gamePlay).pause();
+                game.setScene(GameSceneNames.mainMenu);
             });
             window.addEventListener('blur', function () {
-                game.getScene(Megaparsec.gamePlaySceneName).pause();
-                game.setScene(Megaparsec.menuSceneName);
+                game.getScene(GameSceneNames.gamePlay).pause();
+                game.setScene(GameSceneNames.mainMenu);
             });
         };
         Game._messenger = new Lightspeed.Utils.Messenger();
@@ -1219,6 +1188,16 @@ var Megaparsec;
         return GameMessages;
     }());
     Megaparsec.GameMessages = GameMessages;
+    var GameSceneNames = /** @class */ (function () {
+        function GameSceneNames() {
+        }
+        GameSceneNames.logo = 'Logo';
+        GameSceneNames.gamePlay = 'GamePlay';
+        GameSceneNames.mainMenu = 'MainMenu';
+        GameSceneNames.pause = 'Pause';
+        return GameSceneNames;
+    }());
+    Megaparsec.GameSceneNames = GameSceneNames;
 })(Megaparsec || (Megaparsec = {}));
 var Lightspeed;
 (function (Lightspeed) {
@@ -2325,6 +2304,532 @@ var Megaparsec;
         WaveMode[WaveMode["OffsetWaveMode"] = 2] = "OffsetWaveMode";
         WaveMode[WaveMode["InstantWaveMode"] = 3] = "InstantWaveMode"; // All agents released at once
     })(WaveMode = Megaparsec.WaveMode || (Megaparsec.WaveMode = {}));
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var AddElement = /** @class */ (function (_super) {
+        __extends(AddElement, _super);
+        function AddElement(element) {
+            var _this = _super.call(this) || this;
+            _this._element = element;
+            return _this;
+        }
+        AddElement.prototype.init = function (context) {
+            context.pushElement(this._element);
+            this.kill();
+        };
+        return AddElement;
+    }(Lightspeed.Element));
+    Megaparsec.AddElement = AddElement;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var ChangeLevel = /** @class */ (function (_super) {
+        __extends(ChangeLevel, _super);
+        function ChangeLevel(nextLevelNumber, nextLevelColor) {
+            var _this = _super.call(this) || this;
+            _this._phaseNumber = 0;
+            _this._phases = [];
+            _this._elapsed = 0;
+            _this._nextLevelNumber = nextLevelNumber;
+            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
+            _this._nextLevelColor = nextLevelColor;
+            return _this;
+        }
+        ChangeLevel.prototype.init = function (context) {
+            var _this = this;
+            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            if (this._hills) {
+                this._hills.acceleration = new Vector(-5, 1);
+            }
+            this._phases = [
+                Phase.when(function (context) { return _this._elapsed > 500; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector(-5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 2000; })
+                    .do(function (context) {
+                    if (_this._hills) {
+                        _this._hills.kill();
+                    }
+                }),
+                Phase.when(function (context) { return _this._elapsed > 6000; })
+                    .do(function (context) {
+                    context.pushElement(_this._nextLevelMessage);
+                    _this._starField.acceleration = new Vector(5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 8000 || _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
+                    hills.position = new Vector(0, 100);
+                    hills.velocity = new Vector(-500, -50);
+                    hills.acceleration = new Vector(1, -5);
+                    context.pushElement(hills);
+                    _this._hills = hills;
+                }),
+                Phase.when(function (context) { return _this._hills.position.y <= 0; })
+                    .do(function (context) {
+                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
+                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
+                }),
+                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector();
+                    _this._starField.velocity = new Vector();
+                }),
+                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
+                    .do(function (context) {
+                    _this._hills.acceleration = new Vector();
+                    _this._nextLevelMessage.kill();
+                }),
+            ];
+        };
+        ChangeLevel.prototype.update = function (context) {
+            var phase = this._phases[this._phaseNumber];
+            if (!phase) {
+                this.kill();
+                return;
+            }
+            this._elapsed += context.elapsed;
+            if (phase.act(this, context)) {
+                this._phaseNumber++;
+            }
+        };
+        return ChangeLevel;
+    }(Lightspeed.Element));
+    Megaparsec.ChangeLevel = ChangeLevel;
+    var Phase = /** @class */ (function () {
+        function Phase() {
+        }
+        Phase.when = function (condition) {
+            var phase = new Phase();
+            phase._condition = condition;
+            return phase;
+        };
+        Phase.prototype.do = function (action) {
+            this._action = action;
+            return this;
+        };
+        Phase.prototype.act = function (element, context) {
+            if (!this._condition.bind(element)(context)) {
+                return false;
+            }
+            this._action.bind(element)(context);
+            return true;
+        };
+        return Phase;
+    }());
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var FlowContainer = /** @class */ (function () {
+        function FlowContainer(game) {
+            this._elements = [];
+            this._elementsByName = {};
+            this._game = game;
+        }
+        Object.defineProperty(FlowContainer.prototype, "game", {
+            get: function () {
+                return this._game;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        FlowContainer.prototype.add = function (element) {
+            this._elements.push(element);
+            this._elementsByName[element.name] = element;
+            element.init(this);
+            return this;
+        };
+        FlowContainer.prototype.load = function (name, reset) {
+            var element = this._elementsByName[name];
+            if (!element) {
+                return;
+            }
+            if (reset) {
+                element.reset(this._game);
+            }
+            element.load(this._game);
+        };
+        return FlowContainer;
+    }());
+    Megaparsec.FlowContainer = FlowContainer;
+    var FlowElement = /** @class */ (function () {
+        function FlowElement(name) {
+            this._name = name;
+        }
+        Object.defineProperty(FlowElement.prototype, "name", {
+            get: function () {
+                return this._name;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        FlowElement.prototype.init = function (container) {
+            this._container = container;
+        };
+        FlowElement.prototype.reset = function (game) { };
+        return FlowElement;
+    }());
+    Megaparsec.FlowElement = FlowElement;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="FlowContainer.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var GamePlayFlow = /** @class */ (function (_super) {
+        __extends(GamePlayFlow, _super);
+        function GamePlayFlow() {
+            var _this = _super.call(this, "GamePlay") || this;
+            _this._isLoaded = false;
+            Megaparsec.Game.messenger.subscribe(_this, Megaparsec.GameMessages.playerKilled, _this.onPlayerKilled);
+            return _this;
+        }
+        GamePlayFlow.prototype.load = function (game) {
+            game.setScene(this.name);
+            game.unpause();
+            if (this._isLoaded) {
+                return;
+            }
+            game.clear();
+            game.pushElement(new Megaparsec.Background());
+            game.pushElement(new Megaparsec.StarField(200));
+            this.loadPlayer();
+            game.pushElement(Megaparsec.TimelinePresets.classic());
+            this._isLoaded = true;
+        };
+        GamePlayFlow.prototype.reset = function (game) {
+            game.getScene(this.name).clear();
+            this._isLoaded = false;
+        };
+        GamePlayFlow.prototype.loadPlayer = function () {
+            this._player = new Megaparsec.Player();
+            this._player.position = new Lightspeed.Vector(100, 100);
+            this._container.game.getScene(this.name).pushElement(this._player);
+        };
+        GamePlayFlow.prototype.onPlayerKilled = function (message) {
+            var _this = this;
+            this._container.game.requestTimeout(500, null, function (context) { return _this.loadPlayer(); });
+        };
+        return GamePlayFlow;
+    }(Megaparsec.FlowElement));
+    Megaparsec.GamePlayFlow = GamePlayFlow;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Level = /** @class */ (function (_super) {
+        __extends(Level, _super);
+        function Level() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._waves = [];
+            _this._elements = [];
+            return _this;
+        }
+        Level.start = function () {
+            return new Level();
+        };
+        Level.prototype.addWave = function (enemyName, level) {
+            if (!Config.agents[enemyName]) {
+                return this;
+            }
+            var enemyConfig = Config.agents[enemyName];
+            var wave = new Megaparsec.Wave(enemyConfig, level);
+            this._waves.push(wave);
+            return this;
+        };
+        Level.prototype.addElement = function (element) {
+            this._elements.push(element);
+            return this;
+        };
+        Level.prototype.init = function (context) {
+            this._elements.forEach(function (element) {
+                context.pushElement(element);
+            });
+        };
+        Level.prototype.update = function (context) {
+            if (!this._currentWave || this._currentWave.isDead) {
+                if (!this._waves.length) {
+                    this.kill();
+                    this._elements.forEach(function (i) { return i.kill(); });
+                    return;
+                }
+                var nextWave = this._waves.shift();
+                context.pushElement(nextWave);
+                this._currentWave = nextWave;
+            }
+        };
+        return Level;
+    }(Lightspeed.Element));
+    Megaparsec.Level = Level;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="../../lightspeed/UI/Interface.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var MainMenu = /** @class */ (function (_super) {
+        __extends(MainMenu, _super);
+        function MainMenu(mainMenuFlow) {
+            var _this = _super.call(this) || this;
+            _this._mainMenuFlow = mainMenuFlow;
+            var buttonStyle = {
+                horizontalAlignment: Lightspeed.UI.HorizontalAlignment.center,
+                padding: Lightspeed.UI.Thickness.all(10),
+                margin: new Lightspeed.UI.Thickness(0, 10, 0, 0),
+                borderThickness: 1,
+                borderColor: '#000055',
+                hilightColor: 'rgba(0, 0, 85, 0.3)',
+                minWidth: 250,
+                "content.fontFamily": 'TI99Basic',
+                "content.fontColor": '#44EEFF',
+                "content.fontSize": 24,
+                "content.margin": new Lightspeed.UI.Thickness(0, -15, 0, 0),
+                "content.horizontalAlignment": Lightspeed.UI.HorizontalAlignment.center
+            };
+            _this.build(Lightspeed.UI.StackPanel, function (p) {
+                p.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                p.verticalAlignment = Lightspeed.UI.VerticalAlignment.center;
+                p.add(Lightspeed.UI.TextElement, function (q) {
+                    q.text = 'Megaparsec';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF';
+                    q.fontSize = 128;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.margin = new Lightspeed.UI.Thickness(0, -75, 0, 0);
+                })
+                    .add(Lightspeed.UI.TextElement, function (q) {
+                    q.text = 'Alien craft advancing';
+                    q.fontFamily = 'TI99Basic';
+                    q.fontColor = '#44EEFF';
+                    q.fontSize = 32;
+                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.margin = new Lightspeed.UI.Thickness(0, 0, 0, 25);
+                })
+                    .add(Lightspeed.UI.Button, function (q) {
+                    q.addText('Begin New Adventure');
+                    q.applyStyle(buttonStyle);
+                    q.addMouseDownHandler(function (v) { return _this._mainMenuFlow.newGame(); });
+                })
+                    .add(Lightspeed.UI.Button, function (q) {
+                    q.addText('Continue Adventure');
+                    q.applyStyle(buttonStyle);
+                    q.isEnabled = _this._mainMenuFlow.canContinue;
+                    q.addMouseDownHandler(function (v) { return _this._mainMenuFlow.continueGame(); });
+                    ;
+                });
+            });
+            return _this;
+        }
+        return MainMenu;
+    }(Lightspeed.UI.Interface));
+    Megaparsec.MainMenu = MainMenu;
+})(Megaparsec || (Megaparsec = {}));
+/// <reference path="FlowContainer.ts" />
+var Megaparsec;
+(function (Megaparsec) {
+    var MainMenuFlow = /** @class */ (function (_super) {
+        __extends(MainMenuFlow, _super);
+        function MainMenuFlow() {
+            var _this = _super.call(this, Megaparsec.GameSceneNames.mainMenu) || this;
+            _this._isLoaded = false;
+            return _this;
+        }
+        Object.defineProperty(MainMenuFlow.prototype, "canContinue", {
+            get: function () {
+                return false;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        MainMenuFlow.prototype.load = function (game) {
+            game.setScene(this.name);
+            if (this._isLoaded) {
+                return;
+            }
+            var starField = new Megaparsec.StarField(200);
+            starField.velocity = new Vector(-500, 0);
+            game.pushElement(new Megaparsec.Background());
+            game.pushElement(starField);
+            game.pushElement(new Megaparsec.MainMenu(this));
+        };
+        MainMenuFlow.prototype.newGame = function () {
+            this._container.load(Megaparsec.GameSceneNames.gamePlay, true);
+        };
+        MainMenuFlow.prototype.continueGame = function () {
+            this._container.load(Megaparsec.GameSceneNames.gamePlay);
+        };
+        return MainMenuFlow;
+    }(Megaparsec.FlowElement));
+    Megaparsec.MainMenuFlow = MainMenuFlow;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var StartGame = /** @class */ (function (_super) {
+        __extends(StartGame, _super);
+        function StartGame(nextLevelNumber, nextLevelColor) {
+            var _this = _super.call(this) || this;
+            _this._phaseNumber = 0;
+            _this._phases = [];
+            _this._elapsed = 0;
+            _this._nextLevelNumber = nextLevelNumber;
+            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
+            _this._nextLevelColor = nextLevelColor;
+            return _this;
+        }
+        StartGame.prototype.init = function (context) {
+            var _this = this;
+            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
+            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
+            if (this._hills) {
+                this._hills.kill();
+            }
+            this._starField.velocity = new Vector(-1000, 0);
+            this._phases = [
+                Phase.when(function (context) { return _this._elapsed > 4000; })
+                    .do(function (context) {
+                    context.pushElement(_this._nextLevelMessage);
+                    _this._starField.acceleration = new Vector(5, 0);
+                }),
+                Phase.when(function (context) { return _this._elapsed > 6000 || _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
+                    hills.position = new Vector(0, 100);
+                    hills.velocity = new Vector(-500, -50);
+                    hills.acceleration = new Vector(1, -5);
+                    context.pushElement(hills);
+                    _this._hills = hills;
+                }),
+                Phase.when(function (context) { return _this._hills.position.y <= 0; })
+                    .do(function (context) {
+                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
+                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
+                }),
+                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
+                    .do(function (context) {
+                    _this._starField.acceleration = new Vector();
+                    _this._starField.velocity = new Vector();
+                }),
+                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
+                    .do(function (context) {
+                    _this._hills.acceleration = new Vector();
+                    _this._nextLevelMessage.kill();
+                }),
+            ];
+        };
+        StartGame.prototype.update = function (context) {
+            var phase = this._phases[this._phaseNumber];
+            if (!phase) {
+                this.kill();
+                return;
+            }
+            this._elapsed += context.elapsed;
+            if (phase.act(this, context)) {
+                this._phaseNumber++;
+            }
+        };
+        return StartGame;
+    }(Lightspeed.Element));
+    Megaparsec.StartGame = StartGame;
+    var Phase = /** @class */ (function () {
+        function Phase() {
+        }
+        Phase.when = function (condition) {
+            var phase = new Phase();
+            phase._condition = condition;
+            return phase;
+        };
+        Phase.prototype.do = function (action) {
+            this._action = action;
+            return this;
+        };
+        Phase.prototype.act = function (element, context) {
+            if (!this._condition.bind(element)(context)) {
+                return false;
+            }
+            this._action.bind(element)(context);
+            return true;
+        };
+        return Phase;
+    }());
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var Timeline = /** @class */ (function (_super) {
+        __extends(Timeline, _super);
+        function Timeline() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._currentIndex = -1;
+            _this._currentEvent = null;
+            _this._events = [];
+            return _this;
+        }
+        Timeline.start = function () {
+            return new Timeline();
+        };
+        Timeline.prototype.addLevel = function (buildLevel) {
+            this._events.push(buildLevel(Megaparsec.Level.start()));
+            return this;
+        };
+        Timeline.prototype.addElement = function (element) {
+            this._events.push(new Megaparsec.AddElement(element));
+            return this;
+        };
+        Timeline.prototype.addEvent = function (event) {
+            this._events.push(event);
+            return this;
+        };
+        Timeline.prototype.update = function (context) {
+            if (!this._currentEvent || this._currentEvent.isDead) {
+                this._currentIndex++;
+                this._currentEvent = this._events[this._currentIndex];
+                if (!this._currentEvent) {
+                    this.kill();
+                    return;
+                }
+                context.pushElement(this._currentEvent);
+            }
+        };
+        return Timeline;
+    }(Lightspeed.Element));
+    Megaparsec.Timeline = Timeline;
+})(Megaparsec || (Megaparsec = {}));
+var Megaparsec;
+(function (Megaparsec) {
+    var TimelinePresets = /** @class */ (function () {
+        function TimelinePresets() {
+        }
+        TimelinePresets.classic = function () {
+            var timeline = Megaparsec.Timeline.start()
+                //.addElement(new Hills('#0d1c01'))
+                .addEvent(new Megaparsec.StartGame(1, '#0d1c01'))
+                .addLevel(function (level) { return level
+                .addElement(new Megaparsec.Lightning('skyblue'))
+                .addWave('enemy1', 1)
+                .addWave('enemy2', 1)
+                .addWave('enemy3', 1)
+                .addWave('enemy2', 2)
+                .addWave('enemy4', 1)
+                .addWave('asteroid', 3); })
+                .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
+                .addLevel(function (level) { return level
+                .addElement(new Megaparsec.Comets())
+                .addWave('enemy1', 2)
+                .addWave('enemy2', 2)
+                .addWave('enemy3', 2)
+                .addWave('enemy2', 3)
+                .addWave('enemy4', 2)
+                .addWave('asteroid', 2); })
+                .addEvent(new Megaparsec.ChangeLevel(3, '#0000AA'))
+                .addLevel(function (level) { return level
+                .addWave('enemy1', 3)
+                .addWave('enemy2', 3)
+                .addWave('enemy3', 3)
+                .addWave('enemy2', 4)
+                .addWave('enemy4', 3)
+                .addWave('asteroid', 3); });
+            return timeline;
+        };
+        return TimelinePresets;
+    }());
+    Megaparsec.TimelinePresets = TimelinePresets;
 })(Megaparsec || (Megaparsec = {}));
 var Megaparsec;
 (function (Megaparsec) {
@@ -3453,406 +3958,5 @@ var Megaparsec;
         return StarField;
     }(Lightspeed.InertialElement));
     Megaparsec.StarField = StarField;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var AddElement = /** @class */ (function (_super) {
-        __extends(AddElement, _super);
-        function AddElement(element) {
-            var _this = _super.call(this) || this;
-            _this._element = element;
-            return _this;
-        }
-        AddElement.prototype.init = function (context) {
-            context.pushElement(this._element);
-            this.kill();
-        };
-        return AddElement;
-    }(Lightspeed.Element));
-    Megaparsec.AddElement = AddElement;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var ChangeLevel = /** @class */ (function (_super) {
-        __extends(ChangeLevel, _super);
-        function ChangeLevel(nextLevelNumber, nextLevelColor) {
-            var _this = _super.call(this) || this;
-            _this._phaseNumber = 0;
-            _this._phases = [];
-            _this._elapsed = 0;
-            _this._nextLevelNumber = nextLevelNumber;
-            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
-            _this._nextLevelColor = nextLevelColor;
-            return _this;
-        }
-        ChangeLevel.prototype.init = function (context) {
-            var _this = this;
-            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
-            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
-            if (this._hills) {
-                this._hills.acceleration = new Vector(-5, 1);
-            }
-            this._phases = [
-                Phase.when(function (context) { return _this._elapsed > 500; })
-                    .do(function (context) {
-                    _this._starField.acceleration = new Vector(-5, 0);
-                }),
-                Phase.when(function (context) { return _this._elapsed > 2000; })
-                    .do(function (context) {
-                    if (_this._hills) {
-                        _this._hills.kill();
-                    }
-                }),
-                Phase.when(function (context) { return _this._elapsed > 6000; })
-                    .do(function (context) {
-                    context.pushElement(_this._nextLevelMessage);
-                    _this._starField.acceleration = new Vector(5, 0);
-                }),
-                Phase.when(function (context) { return _this._elapsed > 8000 || _this._starField.velocity.x > 0; })
-                    .do(function (context) {
-                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
-                    hills.position = new Vector(0, 100);
-                    hills.velocity = new Vector(-500, -50);
-                    hills.acceleration = new Vector(1, -5);
-                    context.pushElement(hills);
-                    _this._hills = hills;
-                }),
-                Phase.when(function (context) { return _this._hills.position.y <= 0; })
-                    .do(function (context) {
-                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
-                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
-                }),
-                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
-                    .do(function (context) {
-                    _this._starField.acceleration = new Vector();
-                    _this._starField.velocity = new Vector();
-                }),
-                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
-                    .do(function (context) {
-                    _this._hills.acceleration = new Vector();
-                    _this._nextLevelMessage.kill();
-                }),
-            ];
-        };
-        ChangeLevel.prototype.update = function (context) {
-            var phase = this._phases[this._phaseNumber];
-            if (!phase) {
-                this.kill();
-                return;
-            }
-            this._elapsed += context.elapsed;
-            if (phase.act(this, context)) {
-                this._phaseNumber++;
-            }
-        };
-        return ChangeLevel;
-    }(Lightspeed.Element));
-    Megaparsec.ChangeLevel = ChangeLevel;
-    var Phase = /** @class */ (function () {
-        function Phase() {
-        }
-        Phase.when = function (condition) {
-            var phase = new Phase();
-            phase._condition = condition;
-            return phase;
-        };
-        Phase.prototype.do = function (action) {
-            this._action = action;
-            return this;
-        };
-        Phase.prototype.act = function (element, context) {
-            if (!this._condition.bind(element)(context)) {
-                return false;
-            }
-            this._action.bind(element)(context);
-            return true;
-        };
-        return Phase;
-    }());
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var Level = /** @class */ (function (_super) {
-        __extends(Level, _super);
-        function Level() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this._waves = [];
-            _this._elements = [];
-            return _this;
-        }
-        Level.start = function () {
-            return new Level();
-        };
-        Level.prototype.addWave = function (enemyName, level) {
-            if (!Config.agents[enemyName]) {
-                return this;
-            }
-            var enemyConfig = Config.agents[enemyName];
-            var wave = new Megaparsec.Wave(enemyConfig, level);
-            this._waves.push(wave);
-            return this;
-        };
-        Level.prototype.addElement = function (element) {
-            this._elements.push(element);
-            return this;
-        };
-        Level.prototype.init = function (context) {
-            this._elements.forEach(function (element) {
-                context.pushElement(element);
-            });
-        };
-        Level.prototype.update = function (context) {
-            if (!this._currentWave || this._currentWave.isDead) {
-                if (!this._waves.length) {
-                    this.kill();
-                    this._elements.forEach(function (i) { return i.kill(); });
-                    return;
-                }
-                var nextWave = this._waves.shift();
-                context.pushElement(nextWave);
-                this._currentWave = nextWave;
-            }
-        };
-        return Level;
-    }(Lightspeed.Element));
-    Megaparsec.Level = Level;
-})(Megaparsec || (Megaparsec = {}));
-/// <reference path="../../lightspeed/UI/Interface.ts" />
-var Megaparsec;
-(function (Megaparsec) {
-    var MainMenu = /** @class */ (function (_super) {
-        __extends(MainMenu, _super);
-        function MainMenu(game) {
-            var _this = _super.call(this) || this;
-            _this._game = game;
-            var buttonStyle = {
-                horizontalAlignment: Lightspeed.UI.HorizontalAlignment.center,
-                padding: Lightspeed.UI.Thickness.all(10),
-                margin: new Lightspeed.UI.Thickness(0, 10, 0, 0),
-                borderThickness: 1,
-                borderColor: '#000055',
-                hilightColor: 'rgba(0, 0, 85, 0.3)',
-                minWidth: 250,
-                "content.fontFamily": 'TI99Basic',
-                "content.fontColor": '#44EEFF',
-                "content.fontSize": 24,
-                "content.margin": new Lightspeed.UI.Thickness(0, -15, 0, 0),
-                "content.horizontalAlignment": Lightspeed.UI.HorizontalAlignment.center
-            };
-            _this.build(Lightspeed.UI.StackPanel, function (p) {
-                p.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                p.verticalAlignment = Lightspeed.UI.VerticalAlignment.center;
-                p.add(Lightspeed.UI.TextElement, function (q) {
-                    q.text = 'Megaparsec';
-                    q.fontFamily = 'TI99Basic';
-                    q.fontColor = '#44EEFF';
-                    q.fontSize = 128;
-                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    q.margin = new Lightspeed.UI.Thickness(0, -75, 0, 0);
-                })
-                    .add(Lightspeed.UI.TextElement, function (q) {
-                    q.text = 'Alien craft advancing';
-                    q.fontFamily = 'TI99Basic';
-                    q.fontColor = '#44EEFF';
-                    q.fontSize = 32;
-                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    q.margin = new Lightspeed.UI.Thickness(0, 0, 0, 25);
-                })
-                    .add(Lightspeed.UI.Button, function (q) {
-                    q.addText('Begin New Adventure');
-                    q.applyStyle(buttonStyle);
-                    q.addMouseDownHandler(function (v) { return _this.onNewGame(); });
-                })
-                    .add(Lightspeed.UI.Button, function (q) {
-                    q.addText('Continue Adventure');
-                    q.applyStyle(buttonStyle);
-                    q.isEnabled = false;
-                    q.addMouseDownHandler(function (v) { return _this.onContinueGame(); });
-                });
-            });
-            return _this;
-        }
-        MainMenu.prototype.onNewGame = function () {
-            this._game.setScene(Megaparsec.gamePlaySceneName);
-            this._game.unpause();
-        };
-        MainMenu.prototype.onContinueGame = function () {
-            this._game.setScene(Megaparsec.gamePlaySceneName);
-            this._game.unpause();
-        };
-        return MainMenu;
-    }(Lightspeed.UI.Interface));
-    Megaparsec.MainMenu = MainMenu;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var StartGame = /** @class */ (function (_super) {
-        __extends(StartGame, _super);
-        function StartGame(nextLevelNumber, nextLevelColor) {
-            var _this = _super.call(this) || this;
-            _this._phaseNumber = 0;
-            _this._phases = [];
-            _this._elapsed = 0;
-            _this._nextLevelNumber = nextLevelNumber;
-            _this._nextLevelMessage = new Megaparsec.Message("Level " + _this._nextLevelNumber);
-            _this._nextLevelColor = nextLevelColor;
-            return _this;
-        }
-        StartGame.prototype.init = function (context) {
-            var _this = this;
-            this._hills = context.findFirstElement(function (i) { return i instanceof Megaparsec.Hills; });
-            this._starField = context.findFirstElement(function (i) { return i instanceof Megaparsec.StarField; });
-            if (this._hills) {
-                this._hills.kill();
-            }
-            this._starField.velocity = new Vector(-1000, 0);
-            this._phases = [
-                Phase.when(function (context) { return _this._elapsed > 4000; })
-                    .do(function (context) {
-                    context.pushElement(_this._nextLevelMessage);
-                    _this._starField.acceleration = new Vector(5, 0);
-                }),
-                Phase.when(function (context) { return _this._elapsed > 6000 || _this._starField.velocity.x > 0; })
-                    .do(function (context) {
-                    var hills = new Megaparsec.Hills(_this._nextLevelColor);
-                    hills.position = new Vector(0, 100);
-                    hills.velocity = new Vector(-500, -50);
-                    hills.acceleration = new Vector(1, -5);
-                    context.pushElement(hills);
-                    _this._hills = hills;
-                }),
-                Phase.when(function (context) { return _this._hills.position.y <= 0; })
-                    .do(function (context) {
-                    _this._hills.velocity = _this._hills.velocity.withY(function (y) { return 0; });
-                    _this._hills.acceleration = _this._hills.acceleration.withY(function (y) { return 0; });
-                }),
-                Phase.when(function (context) { return _this._starField.velocity.x > 0; })
-                    .do(function (context) {
-                    _this._starField.acceleration = new Vector();
-                    _this._starField.velocity = new Vector();
-                }),
-                Phase.when(function (context) { return _this._hills.velocity.x >= -200; })
-                    .do(function (context) {
-                    _this._hills.acceleration = new Vector();
-                    _this._nextLevelMessage.kill();
-                }),
-            ];
-        };
-        StartGame.prototype.update = function (context) {
-            var phase = this._phases[this._phaseNumber];
-            if (!phase) {
-                this.kill();
-                return;
-            }
-            this._elapsed += context.elapsed;
-            if (phase.act(this, context)) {
-                this._phaseNumber++;
-            }
-        };
-        return StartGame;
-    }(Lightspeed.Element));
-    Megaparsec.StartGame = StartGame;
-    var Phase = /** @class */ (function () {
-        function Phase() {
-        }
-        Phase.when = function (condition) {
-            var phase = new Phase();
-            phase._condition = condition;
-            return phase;
-        };
-        Phase.prototype.do = function (action) {
-            this._action = action;
-            return this;
-        };
-        Phase.prototype.act = function (element, context) {
-            if (!this._condition.bind(element)(context)) {
-                return false;
-            }
-            this._action.bind(element)(context);
-            return true;
-        };
-        return Phase;
-    }());
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var Timeline = /** @class */ (function (_super) {
-        __extends(Timeline, _super);
-        function Timeline() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this._currentIndex = -1;
-            _this._currentEvent = null;
-            _this._events = [];
-            return _this;
-        }
-        Timeline.start = function () {
-            return new Timeline();
-        };
-        Timeline.prototype.addLevel = function (buildLevel) {
-            this._events.push(buildLevel(Megaparsec.Level.start()));
-            return this;
-        };
-        Timeline.prototype.addElement = function (element) {
-            this._events.push(new Megaparsec.AddElement(element));
-            return this;
-        };
-        Timeline.prototype.addEvent = function (event) {
-            this._events.push(event);
-            return this;
-        };
-        Timeline.prototype.update = function (context) {
-            if (!this._currentEvent || this._currentEvent.isDead) {
-                this._currentIndex++;
-                this._currentEvent = this._events[this._currentIndex];
-                if (!this._currentEvent) {
-                    this.kill();
-                    return;
-                }
-                context.pushElement(this._currentEvent);
-            }
-        };
-        return Timeline;
-    }(Lightspeed.Element));
-    Megaparsec.Timeline = Timeline;
-})(Megaparsec || (Megaparsec = {}));
-var Megaparsec;
-(function (Megaparsec) {
-    var TimelinePresets = /** @class */ (function () {
-        function TimelinePresets() {
-        }
-        TimelinePresets.classic = function () {
-            var timeline = Megaparsec.Timeline.start()
-                //.addElement(new Hills('#0d1c01'))
-                .addEvent(new Megaparsec.StartGame(1, '#0d1c01'))
-                .addLevel(function (level) { return level
-                .addElement(new Megaparsec.Lightning('skyblue'))
-                .addWave('enemy1', 1)
-                .addWave('enemy2', 1)
-                .addWave('enemy3', 1)
-                .addWave('enemy2', 2)
-                .addWave('enemy4', 1)
-                .addWave('asteroid', 3); })
-                .addEvent(new Megaparsec.ChangeLevel(2, '#DD0000'))
-                .addLevel(function (level) { return level
-                .addElement(new Megaparsec.Comets())
-                .addWave('enemy1', 2)
-                .addWave('enemy2', 2)
-                .addWave('enemy3', 2)
-                .addWave('enemy2', 3)
-                .addWave('enemy4', 2)
-                .addWave('asteroid', 2); })
-                .addEvent(new Megaparsec.ChangeLevel(3, '#0000AA'))
-                .addLevel(function (level) { return level
-                .addWave('enemy1', 3)
-                .addWave('enemy2', 3)
-                .addWave('enemy3', 3)
-                .addWave('enemy2', 4)
-                .addWave('enemy4', 3)
-                .addWave('asteroid', 3); });
-            return timeline;
-        };
-        return TimelinePresets;
-    }());
-    Megaparsec.TimelinePresets = TimelinePresets;
 })(Megaparsec || (Megaparsec = {}));
 //# sourceMappingURL=tsbuild.js.map
