@@ -7,6 +7,8 @@ namespace Lightspeed.UI {
 
         hilightColor: string = 'RGBA(255, 255, 255, 0.3)';
 
+        isEnabled: boolean = true;
+
         private _isMouseOver: boolean = false;
 
         get isMouseOver() {
@@ -17,11 +19,15 @@ namespace Lightspeed.UI {
             var ctx = context.ctx;
             ctx.save();
 
+            if (!this.isEnabled) {
+                ctx.globalAlpha = 0.3;
+            }
+
             super.render(context);
 
-            if (this._isMouseOver) {
+            if (this._isMouseOver && this.isEnabled) {
                 ctx.fillStyle = this.hilightColor;
-                super.drawBox(context);
+                super.drawElementBackground(context);
             }
 
             this.content.render(context);
@@ -29,20 +35,26 @@ namespace Lightspeed.UI {
             ctx.restore();        
         }
 
+        addText(text: string) :Button {
+            this.add(Lightspeed.UI.TextElement, r => {
+                r.text = text
+            })
+
+            return this;
+        }
+
         hitTest(mouseLocation: Vector) :UiElement {
             return this;
         }
 
-        onMouseDown(mouseLocation: Vector): void {
-            
-        }
-
         onMouseEnter(mouseLocation: Vector): void {
             this._isMouseOver = true;
+            super.onMouseEnter(mouseLocation);
         }
 
         onMouseLeave(mouseLocation: Vector): void {
             this._isMouseOver = false;
+            super.onMouseLeave(mouseLocation);
         }
 
     }

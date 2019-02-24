@@ -13,91 +13,107 @@ namespace Lightspeed {
             this._height = height;
         }
 
-        public get left() {
+        get left() {
             return this._left;
         }
 
-        public get top() {
+        get top() {
             return this._top;
         }
 
-        public get width() {
+        get width() {
             return this._width;
         }
 
-        public get height() {
+        get height() {
             return this._height;
         }
 
-        public get right() {
+        get right() {
             return this._left + this._width;
         }
 
-        public get bottom() {
+        get bottom() {
             return this._top + this._height;
         }
 
-        public get size() :Size {
+        get size() :Size {
             return new Size(this.width, this.height);
         }
 
-        public get position() :Vector {
+        get position() :Vector {
             return new Vector(this.left, this.top);
         }
 
-        public get center() :Vector {
+        get center() :Vector {
             return new Vector(this.left + this._width / 2, this.top + this.height / 2);
         }
 
-        public inflate(cx: number, cy: number) :Box {
+        inflate(cx: number, cy: number) :Box {
             return new Box(this.left - cx/2, this.top - cy/2, this.width + cx, this.height + cy);
         }
 
-        public alignLeft(left: number) :Box  {
+        alignLeft(left: number) :Box  {
             return new Box(left, this.top, this.width, this.height);
         }
 
-        public alignTop(top: number) :Box  {
+        alignTop(top: number) :Box  {
             return new Box(this.left, top, this.width, this.height);
         }
 
-        public alignRight(right: number) :Box  {
+        alignRight(right: number) :Box  {
             return new Box(right - this.width, this.top, this.width, this.height);
         }
 
-        public alignBottom(bottom: number) :Box  {
+        alignBottom(bottom: number) :Box  {
             return new Box(this.left, bottom - this.height, this.width, this.height);
         }
 
-        public offsetV(vector: Vector) :Box {
+        offsetV(vector: Vector) :Box {
             return this.offset(vector.x, vector.y);
         }
         
-        public offset(cx?: number, cy?: number) :Box  {
+        offset(cx?: number, cy?: number) :Box  {
             return new Box(this.left + cx, this.top + cy, this.width, this.height);
         }
 
-        public collides(other: Box) :boolean {
+        collides(other: Box) :boolean {
             return (this.left < other.right && this.right > other.left && this.top < other.bottom && this.bottom > other.top);
         }
         
-        public containsBox(other: Box) :boolean {
+        containsBox(other: Box) :boolean {
             return (this.left <= other.left && this.right >= other.right && this.top <= other.top && this.bottom >= other.bottom);
         }
         
-        public containsVector(vector: Vector) :boolean {
+        containsVector(vector: Vector) :boolean {
             return (this.left <= vector.x && this.right >= vector.x && this.top <= vector.y && this.bottom >= vector.y);
         }
 
-        public static fromCenter(center: Vector, width: number, height: number) {
+        withLeft(change: (left: number) => number) : Box {
+            return new Box(change(this.left), this.top, this.width, this.height);
+        }
+
+        withTop(change: (top: number) => number) : Box {
+            return new Box(this.left, change(this.top), this.width, this.height);
+        }
+
+        withWidth(change: (width: number) => number) : Box {
+            return new Box(this.left, this.top, change(this.width), this.height);
+        }
+
+        withHeight(change: (height: number) => number) : Box {
+            return new Box(this.left, this.top, this.width, change(this.height));
+        }
+
+        static fromCenter(center: Vector, width: number, height: number) {
             return new Box(center.x - width/2, center.y - height/2, width, height);
         }
 
-        public static fromLocationAndSize(location: Vector, size: Size) {
+        static fromLocationAndSize(location: Vector, size: Size) {
             return new Box(location.x, location.y, size.width, size.height);
         }
 
-        public static fromSize(size: Size) {
+        static fromSize(size: Size) {
             return new Box(0, 0, size.width, size.height);
         }
     }

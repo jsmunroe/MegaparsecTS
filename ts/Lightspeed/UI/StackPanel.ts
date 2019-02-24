@@ -28,7 +28,11 @@ namespace Lightspeed.UI {
                 availableSize = new Size(availableSize.width, Math.max(availableSize.height - itemDesiredSize.height, 0));
             }
 
-            return new Size(desiredWidth, desiredHeight);
+            this.desiredSize = new Size(desiredWidth, desiredHeight)
+
+            this.desiredSize = this.constrainSize(this.desiredSize);
+
+            return this.desiredSize;
         }
 
         arrange(context: InterfaceRenderContext, finalSize: Box) : Box {
@@ -39,15 +43,20 @@ namespace Lightspeed.UI {
                 
                 var left = finalSize.left;
                 var top = nextTop;
+                var width = item.desiredSize.width;
+                var height = item.desiredSize.height;
 
                 if (item.horizontalAlignment === HorizontalAlignment.center) {
                     left = left + finalSize.width / 2 - item.desiredSize.width / 2;
                 } else if (item.horizontalAlignment === HorizontalAlignment.right) {
                     left = left + finalSize.width - item.desiredSize.width;
+                } else if (item.horizontalAlignment === HorizontalAlignment.stretch) {
+                    left = left;
+                    width = finalSize.width;
                 }
 
-                var itemRenderSize = Box.fromSize(item.desiredSize).offset(left, top);
-                itemRenderSize = item.arrange(context, itemRenderSize);
+                var itemFinalSize = new Box(left, top, width, height);
+                var itemRenderSize = item.arrange(context, itemFinalSize);
                 item.renderSize = itemRenderSize;
 
                 nextTop += itemRenderSize.height;

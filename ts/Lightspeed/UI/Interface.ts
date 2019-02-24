@@ -73,7 +73,7 @@ namespace Lightspeed.UI {
                 return;
             }
 
-            element.onMouseDown(mouseLocation);
+            element.onMouseMove(mouseLocation);
         }
 
     }

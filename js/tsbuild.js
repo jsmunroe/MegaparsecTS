@@ -115,6 +115,18 @@ var Lightspeed;
         Box.prototype.containsVector = function (vector) {
             return (this.left <= vector.x && this.right >= vector.x && this.top <= vector.y && this.bottom >= vector.y);
         };
+        Box.prototype.withLeft = function (change) {
+            return new Box(change(this.left), this.top, this.width, this.height);
+        };
+        Box.prototype.withTop = function (change) {
+            return new Box(this.left, change(this.top), this.width, this.height);
+        };
+        Box.prototype.withWidth = function (change) {
+            return new Box(this.left, this.top, change(this.width), this.height);
+        };
+        Box.prototype.withHeight = function (change) {
+            return new Box(this.left, this.top, this.width, change(this.height));
+        };
         Box.fromCenter = function (center, width, height) {
             return new Box(center.x - width / 2, center.y - height / 2, width, height);
         };
@@ -815,6 +827,12 @@ var Lightspeed;
         Size.prototype.scale = function (scalarX, scalarY) {
             return new Size(this._width * scalarX, this._height * (scalarY || scalarX));
         };
+        Size.prototype.withWidth = function (change) {
+            return new Size(change(this.width), this.height);
+        };
+        Size.prototype.withHeight = function (change) {
+            return new Size(this.width, change(this.height));
+        };
         return Size;
     }());
     Lightspeed.Size = Size;
@@ -972,7 +990,7 @@ var Config = {
         moveDown: ['ArrowDown', 'KeyS'],
         moveLeft: ['ArrowLeft', 'KeyA'],
         moveRight: ['ArrowRight', 'KeyD'],
-        pause: ['KeyP', 'Pause'],
+        pause: ['Escape'],
         primaryFire: ['Space']
     },
     strings: {
@@ -1163,7 +1181,7 @@ var Megaparsec;
             starField.velocity = new Vector(-500, 0);
             this.pushElement(new Megaparsec.Background());
             this.pushElement(starField);
-            this.pushElement(new Megaparsec.MainMenu());
+            this.pushElement(new Megaparsec.MainMenu(this));
         };
         Game.prototype.loadPlayer = function () {
             this._player = new Megaparsec.Player();
@@ -1173,16 +1191,6 @@ var Megaparsec;
         Game.prototype.loadTimeline = function () {
             this.pushElement(Megaparsec.TimelinePresets.classic());
         };
-        Game.prototype.onPause = function (scene) {
-            if (scene.name === Megaparsec.gamePlaySceneName) {
-                this.setScene(Megaparsec.menuSceneName);
-            }
-        };
-        Game.prototype.onUnpause = function (scene) {
-            if (scene.name === Megaparsec.gamePlaySceneName) {
-                this.setScene(Megaparsec.gamePlaySceneName);
-            }
-        };
         Game.prototype.onPlayerKilled = function (message) {
             var _this = this;
             this.requestTimeout(500, null, function (context) { return _this.loadPlayer(); });
@@ -1191,12 +1199,13 @@ var Megaparsec;
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
-            var gamePlayScene = game.getScene(Megaparsec.gamePlaySceneName);
-            Keyboard.Current.keys(Config.keys.pause, function () { return gamePlayScene.togglePause(); });
+            Keyboard.Current.keys(Config.keys.pause, function () {
+                game.getScene(Megaparsec.gamePlaySceneName).pause();
+                game.setScene(Megaparsec.menuSceneName);
+            });
             window.addEventListener('blur', function () {
-                if (!gamePlayScene.isPaused) {
-                    gamePlayScene.pause();
-                }
+                game.getScene(Megaparsec.gamePlaySceneName).pause();
+                game.setScene(Megaparsec.menuSceneName);
             });
         };
         Game._messenger = new Lightspeed.Utils.Messenger();
@@ -1325,16 +1334,70 @@ var Megaparsec;
 })(Megaparsec || (Megaparsec = {}));
 var Lightspeed;
 (function (Lightspeed) {
+    var Utils;
+    (function (Utils) {
+        var CtxHelpers = /** @class */ (function () {
+            function CtxHelpers() {
+            }
+            CtxHelpers.strokeRoundRect = function (ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                ctx.stroke();
+            };
+            CtxHelpers.fillRoundRect = function (ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                ctx.fill();
+            };
+            return CtxHelpers;
+        }());
+        Utils.CtxHelpers = CtxHelpers;
+    })(Utils = Lightspeed.Utils || (Lightspeed.Utils = {}));
+})(Lightspeed || (Lightspeed = {}));
+/// <reference path="../Utils/CtxHelpers.ts" />
+var CtxHelpers = Lightspeed.Utils.CtxHelpers;
+var Lightspeed;
+(function (Lightspeed) {
     var UI;
     (function (UI) {
         var UiElement = /** @class */ (function () {
             function UiElement() {
                 this.backgroundColor = 'transparent';
+                this.borderColor = null;
                 this.borderThickness = 1;
+                this.borderRadius = 15;
                 this.horizontalAlignment = HorizontalAlignment.left;
                 this.verticalAlignment = VerticalAlignment.top;
                 this.padding = UI.Thickness.all(5);
                 this.margin = UI.Thickness.all(0);
+                this.width = null;
+                this.height = null;
+                this.minWidth = null;
+                this.maxWidth = null;
+                this.minHeight = null;
+                this.maxHeight = null;
+                this._mouseDownHandlers = [];
+                this._mouseMoveHandlers = [];
+                this._mouseEnterHandlers = [];
+                this._mouseLeaveHandlers = [];
             }
             UiElement.prototype.render = function (context) {
                 var ctx = context.ctx;
@@ -1345,10 +1408,21 @@ var Lightspeed;
                     ctx.strokeStyle = this.borderColor;
                     ctx.lineWidth = this.borderThickness;
                 }
-                this.drawBox(context);
+                this.drawElementBackground(context);
                 ctx.restore();
             };
-            UiElement.prototype.drawDebug = function (context) {
+            UiElement.prototype.applyStyle = function (style) {
+                var styleKeys = Object.keys(style);
+                var localKeys = Object.keys(this);
+                for (var i = 0; i < styleKeys.length; i++) {
+                    var styleKey = styleKeys[i];
+                    if (localKeys.indexOf(styleKey) < 0) {
+                        continue;
+                    }
+                    this[styleKey] = style[styleKey];
+                }
+            };
+            UiElement.prototype.drawDebugBounds = function (context) {
                 var ctx = context.ctx;
                 ctx.save();
                 ctx.lineWidth = 1;
@@ -1363,32 +1437,65 @@ var Lightspeed;
                 ctx.strokeRect(box.left, box.top, box.width, box.height);
                 ctx.restore();
             };
-            UiElement.prototype.drawBox = function (context) {
+            UiElement.prototype.drawElementBackground = function (context) {
                 var ctx = context.ctx;
                 var renderSizeLessMarginsAndBorder = this.renderSize;
                 renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.margin);
                 renderSizeLessMarginsAndBorder = this.reduceBox(renderSizeLessMarginsAndBorder, this.getBorderThickness().half);
-                ctx.fillRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
-                ctx.strokeRect(renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height);
+                CtxHelpers.fillRoundRect(ctx, renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height, this.borderRadius);
+                CtxHelpers.strokeRoundRect(ctx, renderSizeLessMarginsAndBorder.left, renderSizeLessMarginsAndBorder.top, renderSizeLessMarginsAndBorder.width, renderSizeLessMarginsAndBorder.height, this.borderRadius);
             };
             UiElement.prototype.onMouseDown = function (mouseLocation) {
-                // Optionally handled by subclasses to handle mouse down event.
+                this._mouseDownHandlers.forEach(function (h) { return h(mouseLocation); });
             };
             UiElement.prototype.onMouseMove = function (mouseLocation) {
-                // Optionally handled by subclasses to handle mouse move event.
+                this._mouseMoveHandlers.forEach(function (h) { return h(mouseLocation); });
             };
             UiElement.prototype.onMouseEnter = function (mouseLocation) {
-                // Optionally handled by subclasses to handle mouse enter event.
+                this._mouseEnterHandlers.forEach(function (h) { return h(mouseLocation); });
             };
             UiElement.prototype.onMouseLeave = function (mouseLocation) {
-                // Optionally handled by subclasses to handle mouse enter event.
+                this._mouseLeaveHandlers.forEach(function (h) { return h(mouseLocation); });
+            };
+            UiElement.prototype.addMouseDownHandler = function (handler) {
+                this._mouseDownHandlers.push(handler);
+            };
+            UiElement.prototype.addMouseMoveHandler = function (handler) {
+                this._mouseMoveHandlers.push(handler);
+            };
+            UiElement.prototype.addMouseEnterHandler = function (handler) {
+                this._mouseEnterHandlers.push(handler);
+            };
+            UiElement.prototype.addMouseLeaveHandler = function (handler) {
+                this._mouseLeaveHandlers.push(handler);
             };
             UiElement.prototype.getBorderThickness = function () {
                 return UI.Thickness.all(this.borderThickness);
             };
             UiElement.prototype.arrange = function (context, finalSize) {
-                var size = finalSize;
                 return finalSize;
+            };
+            UiElement.prototype.constrainSize = function (size) {
+                var _this = this;
+                if (this.width !== null) {
+                    size = size.withWidth(function (width) { return _this.width; });
+                }
+                if (this.minWidth !== null) {
+                    size = size.withWidth(function (width) { return Math.max(width, _this.minWidth); });
+                }
+                if (this.maxWidth !== null) {
+                    size = size.withWidth(function (width) { return Math.min(width, _this.maxWidth); });
+                }
+                if (this.height !== null) {
+                    size = size.withHeight(function (height) { return _this.height; });
+                }
+                if (this.minHeight !== null) {
+                    size = size.withHeight(function (height) { return Math.max(height, _this.minHeight); });
+                }
+                if (this.maxHeight !== null) {
+                    size = size.withHeight(function (height) { return Math.min(height, _this.maxHeight); });
+                }
+                return size;
             };
             UiElement.prototype.reduceBox = function (box, thickness) {
                 if (!thickness) {
@@ -1454,13 +1561,16 @@ var Lightspeed;
                 if (!this.content) {
                     return new Lightspeed.Size(0, 0);
                 }
+                availableSize = this.constrainSize(availableSize);
                 this.desiredSize = this.content.measure(context, availableSize);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
+                this.desiredSize = this.constrainSize(this.desiredSize);
                 return this.desiredSize;
             };
             ContentContainer.prototype.arrange = function (context, finalSize) {
+                var _this = this;
                 if (!this.content) {
                     return finalSize;
                 }
@@ -1468,9 +1578,27 @@ var Lightspeed;
                 childFinalSize = this.reduceBox(childFinalSize, this.margin);
                 childFinalSize = this.reduceBox(childFinalSize, this.padding);
                 childFinalSize = this.reduceBox(childFinalSize, this.getBorderThickness());
+                if (this.content.horizontalAlignment === UI.HorizontalAlignment.center) {
+                    childFinalSize = childFinalSize.withLeft(function (left) { return left + childFinalSize.width / 2 - _this.content.desiredSize.width / 2; })
+                        .withWidth(function (width) { return _this.content.desiredSize.width; });
+                }
+                else if (this.content.horizontalAlignment === UI.HorizontalAlignment.right) {
+                    childFinalSize = childFinalSize.withLeft(function (left) { return left + childFinalSize.width - _this.content.desiredSize.width; })
+                        .withWidth(function (width) { return _this.content.desiredSize.width; });
+                }
                 var renderSize = this.content.arrange(context, childFinalSize);
                 this.content.renderSize = renderSize;
                 return finalSize;
+            };
+            ContentContainer.prototype.applyStyle = function (style) {
+                _super.prototype.applyStyle.call(this, style);
+                var contentStyleKeys = Object.keys(style).filter(function (i) { return /^content\./.test(i); });
+                var contentStyle = {};
+                contentStyleKeys.forEach(function (key) {
+                    var contentKey = key.replace(/^content\./, '');
+                    contentStyle[contentKey] = style[key];
+                });
+                this.content && this.content.applyStyle(contentStyle);
             };
             ContentContainer.prototype.hitTest = function (mouseLocation) {
                 if (!this.content) {
@@ -1495,6 +1623,7 @@ var Lightspeed;
             function Button() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
                 _this.hilightColor = 'RGBA(255, 255, 255, 0.3)';
+                _this.isEnabled = true;
                 _this._isMouseOver = false;
                 return _this;
             }
@@ -1508,24 +1637,33 @@ var Lightspeed;
             Button.prototype.render = function (context) {
                 var ctx = context.ctx;
                 ctx.save();
+                if (!this.isEnabled) {
+                    ctx.globalAlpha = 0.3;
+                }
                 _super.prototype.render.call(this, context);
-                if (this._isMouseOver) {
+                if (this._isMouseOver && this.isEnabled) {
                     ctx.fillStyle = this.hilightColor;
-                    _super.prototype.drawBox.call(this, context);
+                    _super.prototype.drawElementBackground.call(this, context);
                 }
                 this.content.render(context);
                 ctx.restore();
             };
+            Button.prototype.addText = function (text) {
+                this.add(Lightspeed.UI.TextElement, function (r) {
+                    r.text = text;
+                });
+                return this;
+            };
             Button.prototype.hitTest = function (mouseLocation) {
                 return this;
             };
-            Button.prototype.onMouseDown = function (mouseLocation) {
-            };
             Button.prototype.onMouseEnter = function (mouseLocation) {
                 this._isMouseOver = true;
+                _super.prototype.onMouseEnter.call(this, mouseLocation);
             };
             Button.prototype.onMouseLeave = function (mouseLocation) {
                 this._isMouseOver = false;
+                _super.prototype.onMouseLeave.call(this, mouseLocation);
             };
             return Button;
         }(UI.ContentContainer));
@@ -1590,7 +1728,7 @@ var Lightspeed;
                 if (!element) {
                     return;
                 }
-                element.onMouseDown(mouseLocation);
+                element.onMouseMove(mouseLocation);
             };
             return Interface;
         }(Lightspeed.Element));
@@ -1651,6 +1789,18 @@ var Lightspeed;
                 this.items.push(element);
                 return this;
             };
+            ItemsContainer.prototype.applyStyle = function (style) {
+                _super.prototype.applyStyle.call(this, style);
+                var itemStyleKeys = Object.keys(style).filter(function (i) { return /^item\./.test(i); });
+                var itemStyle = {};
+                itemStyleKeys.forEach(function (key) {
+                    var itemKey = key.replace(/^item\./, '');
+                    itemStyle[itemKey] = style[key];
+                });
+                this.items.forEach(function (item) {
+                    item.applyStyle(style);
+                });
+            };
             ItemsContainer.prototype.hitTest = function (mouseLocation) {
                 var item;
                 var hitItem;
@@ -1693,7 +1843,9 @@ var Lightspeed;
                     desiredHeight += itemDesiredSize.height;
                     availableSize = new Lightspeed.Size(availableSize.width, Math.max(availableSize.height - itemDesiredSize.height, 0));
                 }
-                return new Lightspeed.Size(desiredWidth, desiredHeight);
+                this.desiredSize = new Lightspeed.Size(desiredWidth, desiredHeight);
+                this.desiredSize = this.constrainSize(this.desiredSize);
+                return this.desiredSize;
             };
             StackPanel.prototype.arrange = function (context, finalSize) {
                 var nextTop = finalSize.top;
@@ -1701,14 +1853,20 @@ var Lightspeed;
                     var item = this.items[i];
                     var left = finalSize.left;
                     var top = nextTop;
+                    var width = item.desiredSize.width;
+                    var height = item.desiredSize.height;
                     if (item.horizontalAlignment === UI.HorizontalAlignment.center) {
                         left = left + finalSize.width / 2 - item.desiredSize.width / 2;
                     }
                     else if (item.horizontalAlignment === UI.HorizontalAlignment.right) {
                         left = left + finalSize.width - item.desiredSize.width;
                     }
-                    var itemRenderSize = Lightspeed.Box.fromSize(item.desiredSize).offset(left, top);
-                    itemRenderSize = item.arrange(context, itemRenderSize);
+                    else if (item.horizontalAlignment === UI.HorizontalAlignment.stretch) {
+                        left = left;
+                        width = finalSize.width;
+                    }
+                    var itemFinalSize = new Lightspeed.Box(left, top, width, height);
+                    var itemRenderSize = item.arrange(context, itemFinalSize);
                     item.renderSize = itemRenderSize;
                     nextTop += itemRenderSize.height;
                 }
@@ -1737,7 +1895,7 @@ var Lightspeed;
                 var ctx = context.ctx;
                 ctx.save();
                 _super.prototype.render.call(this, context);
-                //this.drawDebug(context);
+                //this.drawDebugBounds(context);
                 ctx.fillStyle = this.fontColor;
                 ctx.textBaseline = 'top';
                 ctx.font = this.fontSize + "px " + this.fontFamily;
@@ -1759,6 +1917,7 @@ var Lightspeed;
                 this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
                 this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
+                this.desiredSize = this.constrainSize(this.desiredSize);
                 return this.desiredSize;
             };
             TextElement.prototype.hitTest = function (mouseLocation) {
@@ -3463,17 +3622,33 @@ var Megaparsec;
 (function (Megaparsec) {
     var MainMenu = /** @class */ (function (_super) {
         __extends(MainMenu, _super);
-        function MainMenu() {
+        function MainMenu(game) {
             var _this = _super.call(this) || this;
+            _this._game = game;
+            var buttonStyle = {
+                horizontalAlignment: Lightspeed.UI.HorizontalAlignment.center,
+                padding: Lightspeed.UI.Thickness.all(10),
+                margin: new Lightspeed.UI.Thickness(0, 10, 0, 0),
+                borderThickness: 1,
+                borderColor: '#000055',
+                hilightColor: 'rgba(0, 0, 85, 0.3)',
+                minWidth: 250,
+                "content.fontFamily": 'TI99Basic',
+                "content.fontColor": '#44EEFF',
+                "content.fontSize": 24,
+                "content.margin": new Lightspeed.UI.Thickness(0, -15, 0, 0),
+                "content.horizontalAlignment": Lightspeed.UI.HorizontalAlignment.center
+            };
             _this.build(Lightspeed.UI.StackPanel, function (p) {
                 p.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                p.verticalAlignment = Lightspeed.UI.VerticalAlignment.center;
                 p.add(Lightspeed.UI.TextElement, function (q) {
                     q.text = 'Megaparsec';
                     q.fontFamily = 'TI99Basic';
                     q.fontColor = '#44EEFF';
                     q.fontSize = 128;
                     q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    q.margin = new Lightspeed.UI.Thickness(0, -50, 0, 0);
+                    q.margin = new Lightspeed.UI.Thickness(0, -75, 0, 0);
                 })
                     .add(Lightspeed.UI.TextElement, function (q) {
                     q.text = 'Alien craft advancing';
@@ -3481,23 +3656,30 @@ var Megaparsec;
                     q.fontColor = '#44EEFF';
                     q.fontSize = 32;
                     q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
+                    q.margin = new Lightspeed.UI.Thickness(0, 0, 0, 25);
                 })
                     .add(Lightspeed.UI.Button, function (q) {
-                    q.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    q.padding = Lightspeed.UI.Thickness.all(10);
-                    q.margin = new Lightspeed.UI.Thickness(0, 15, 0, 0);
-                    q.add(Lightspeed.UI.TextElement, function (r) {
-                        r.text = 'Begin New Adventure';
-                        r.fontFamily = 'TI99Basic';
-                        r.fontColor = '#44EEFF';
-                        r.fontSize = 24;
-                        r.margin = new Lightspeed.UI.Thickness(0, -15, 0, 0);
-                        r.horizontalAlignment = Lightspeed.UI.HorizontalAlignment.center;
-                    });
+                    q.addText('Begin New Adventure');
+                    q.applyStyle(buttonStyle);
+                    q.addMouseDownHandler(function (v) { return _this.onNewGame(); });
+                })
+                    .add(Lightspeed.UI.Button, function (q) {
+                    q.addText('Continue Adventure');
+                    q.applyStyle(buttonStyle);
+                    q.isEnabled = false;
+                    q.addMouseDownHandler(function (v) { return _this.onContinueGame(); });
                 });
             });
             return _this;
         }
+        MainMenu.prototype.onNewGame = function () {
+            this._game.setScene(Megaparsec.gamePlaySceneName);
+            this._game.unpause();
+        };
+        MainMenu.prototype.onContinueGame = function () {
+            this._game.setScene(Megaparsec.gamePlaySceneName);
+            this._game.unpause();
+        };
         return MainMenu;
     }(Lightspeed.UI.Interface));
     Megaparsec.MainMenu = MainMenu;

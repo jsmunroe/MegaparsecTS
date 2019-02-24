@@ -18,6 +18,21 @@ namespace Lightspeed.UI {
             return this;
         }
 
+        applyStyle(style: any) {
+            super.applyStyle(style);
+
+            var itemStyleKeys = Object.keys(style).filter(i => /^item\./.test(i));
+            var itemStyle = {};
+            itemStyleKeys.forEach(key => {
+                var itemKey = key.replace(/^item\./, '');
+                itemStyle[itemKey] = style[key];
+            });
+
+            this.items.forEach(item => {
+                item.applyStyle(style);
+            });
+        }
+        
         hitTest(mouseLocation: Vector) :UiElement {
             var item :UiElement;
 

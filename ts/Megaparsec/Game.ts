@@ -43,7 +43,7 @@ namespace Megaparsec {
             starField.velocity = new Vector(-500, 0);
             this.pushElement(new Background());
             this.pushElement(starField);
-            this.pushElement(new MainMenu());
+            this.pushElement(new MainMenu(this));
         }
 
         loadPlayer() {
@@ -56,18 +56,6 @@ namespace Megaparsec {
             this.pushElement(TimelinePresets.classic());
         }
 
-        onPause(scene: Lightspeed.Scene) {
-            if (scene.name === gamePlaySceneName) {
-                this.setScene(menuSceneName);
-            }
-        }
-
-        onUnpause(scene: Lightspeed.Scene) {
-            if (scene.name === gamePlaySceneName) {
-                this.setScene(gamePlaySceneName);
-            }
-        }
-
         private onPlayerKilled(message: Lightspeed.Utils.Message) {
             this.requestTimeout(500, null, context => this.loadPlayer());
         }
@@ -77,14 +65,14 @@ namespace Megaparsec {
             game.load(Config);
             game.run();
 
-            var gamePlayScene = game.getScene(gamePlaySceneName);
-
-            Keyboard.Current.keys(Config.keys.pause, () => gamePlayScene.togglePause());
+            Keyboard.Current.keys(Config.keys.pause, () => {
+                game.getScene(gamePlaySceneName).pause();
+                game.setScene(menuSceneName);
+            });
 
             window.addEventListener('blur', () => {
-                if (!gamePlayScene.isPaused) {
-                    gamePlayScene.pause();
-                }
+                game.getScene(gamePlaySceneName).pause();
+                game.setScene(menuSceneName);
             });
         }
     }

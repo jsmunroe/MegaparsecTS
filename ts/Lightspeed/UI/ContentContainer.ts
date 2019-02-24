@@ -22,10 +22,14 @@ namespace Lightspeed.UI {
                 return new Size(0, 0);
             }
 
+            availableSize = this.constrainSize(availableSize);
+
             this.desiredSize = this.content.measure(context, availableSize);
             this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
             this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
             this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
+
+            this.desiredSize = this.constrainSize(this.desiredSize);
 
             return this.desiredSize;
         }
@@ -40,10 +44,30 @@ namespace Lightspeed.UI {
             childFinalSize = this.reduceBox(childFinalSize, this.padding);
             childFinalSize = this.reduceBox(childFinalSize, this.getBorderThickness());
 
+            if (this.content.horizontalAlignment === HorizontalAlignment.center) {
+                childFinalSize = childFinalSize.withLeft(left => left + childFinalSize.width / 2 - this.content.desiredSize.width / 2)
+                                               .withWidth(width => this.content.desiredSize.width);
+            } else if (this.content.horizontalAlignment === HorizontalAlignment.right) {
+                childFinalSize = childFinalSize.withLeft(left => left + childFinalSize.width - this.content.desiredSize.width)
+                                               .withWidth(width => this.content.desiredSize.width);
+            } 
+
             var renderSize = this.content.arrange(context, childFinalSize);
             this.content.renderSize = renderSize;
 
             return finalSize;
+        }
+
+        applyStyle(style: any) {
+            super.applyStyle(style);
+
+            var contentStyleKeys = Object.keys(style).filter(i => /^content\./.test(i));
+            var contentStyle = {};
+            contentStyleKeys.forEach(key => {
+                var contentKey = key.replace(/^content\./, '');
+                contentStyle[contentKey] = style[key];
+            });
+            this.content && this.content.applyStyle(contentStyle);
         }
 
         hitTest(mouseLocation: Vector) :UiElement {

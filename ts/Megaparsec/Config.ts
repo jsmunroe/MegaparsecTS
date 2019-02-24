@@ -4,7 +4,7 @@ var Config = {
         moveDown: ['ArrowDown', 'KeyS'],
         moveLeft: ['ArrowLeft', 'KeyA'], 
         moveRight: ['ArrowRight', 'KeyD'],
-        pause: ['KeyP', 'Pause'],
+        pause: ['Escape'],
         primaryFire: ['Space']
     }, 
     strings: {

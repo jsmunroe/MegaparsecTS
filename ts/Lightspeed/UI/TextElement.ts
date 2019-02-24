@@ -12,7 +12,7 @@ namespace Lightspeed.UI {
             
             super.render(context);
 
-            //this.drawDebug(context);
+            //this.drawDebugBounds(context);
 
             ctx.fillStyle = this.fontColor;
             ctx.textBaseline = 'top';
@@ -43,6 +43,8 @@ namespace Lightspeed.UI {
             this.desiredSize = this.increaseSize(this.desiredSize, this.margin);
             this.desiredSize = this.increaseSize(this.desiredSize, this.padding);
             this.desiredSize = this.increaseSize(this.desiredSize, this.getBorderThickness());
+
+            this.desiredSize = this.constrainSize(this.desiredSize);
 
             return this.desiredSize;
 
