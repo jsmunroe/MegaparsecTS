@@ -19,7 +19,8 @@ namespace Megaparsec {
         load(config: any) {
             this._flowContainer = new FlowContainer(this)
                 .add(new MainMenuFlow())
-                .add(new GamePlayFlow());
+                .add(new GamePlayFlow())
+                .add(new PauseFlow());
 
             this._flowContainer.load(GameSceneNames.mainMenu);
         }
@@ -28,16 +29,6 @@ namespace Megaparsec {
             var game = Game.s_current = new Game();
             game.load(Config);
             game.run();
-
-            Keyboard.Current.keys(Config.keys.pause, () => {
-                game.getScene(GameSceneNames.gamePlay).pause();
-                game.setScene(GameSceneNames.mainMenu);
-            });
-
-            window.addEventListener('blur', () => {
-                game.getScene(GameSceneNames.gamePlay).pause();
-                game.setScene(GameSceneNames.mainMenu);
-            });
         }
     }
 

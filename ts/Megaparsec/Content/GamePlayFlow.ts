@@ -2,20 +2,28 @@
 
 namespace Megaparsec {
     export class GamePlayFlow extends FlowElement {
-        private _isLoaded: boolean = false;
+        private _isInitialized: boolean = false;
         private _player: Player;
 
         constructor() {
             super("GamePlay");
 
             Game.messenger.subscribe(this, GameMessages.playerKilled, this.onPlayerKilled);
+
+            Keyboard.Current.keys(Config.keys.pause, () => {
+                this.isLoaded && this._container.load(GameSceneNames.pause);
+            });
+
+            window.addEventListener('blur', () => {
+                this.isLoaded && this._container.load(GameSceneNames.pause);
+            });
         }
 
         load(game: Game) {
             game.setScene(this.name);
             game.unpause();
 
-            if (this._isLoaded) {
+            if (this._isInitialized) {
                 return;
             }
 
@@ -28,12 +36,12 @@ namespace Megaparsec {
 
             game.pushElement(TimelinePresets.classic());
 
-            this._isLoaded = true;
+            this._isInitialized = true;
         }
 
         reset(game: Game) {
             game.getScene(this.name).clear();
-            this._isLoaded = false;
+            this._isInitialized = false;
         }
 
         loadPlayer() {

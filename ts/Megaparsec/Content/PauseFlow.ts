@@ -1,13 +1,13 @@
 /// <reference path="FlowContainer.ts" />
 
 namespace Megaparsec {
-    export class MainMenuFlow extends FlowElement {
+    export class PauseFlow extends FlowElement {
         get canContinue() {
             return false;
         }
 
         constructor() {
-            super(GameSceneNames.mainMenu);
+            super(GameSceneNames.pause);
         }
 
         load(game: Game) {
@@ -18,15 +18,15 @@ namespace Megaparsec {
             starField.velocity = new Vector(-500, 0);
             game.pushElement(new Background());
             game.pushElement(starField);
-            game.pushElement(new MainMenu(this));
-        }
-
-        newGame() {
-            this._container.load(GameSceneNames.gamePlay, true);
+            game.pushElement(new Pause(this));
         }
 
         continueGame() {
             this._container.load(GameSceneNames.gamePlay);
+        }
+
+        endGame() {
+            this._container.load(GameSceneNames.mainMenu);
         }
     }
 }

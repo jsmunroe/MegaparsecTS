@@ -4,8 +4,14 @@ namespace Megaparsec {
         private _elements: FlowElement[] = [];
         private _elementsByName: Object = {};
 
+        private _currentElement: FlowElement;
+
         get game() {
             return this._game;
+        }
+
+        get currentElement() {
+            return this._currentElement;
         }
 
         constructor(game: Game) {
@@ -32,6 +38,7 @@ namespace Megaparsec {
                 element.reset(this._game);
             }
 
+            this._currentElement = element;
             element.load(this._game);
         }
     }
@@ -44,6 +51,10 @@ namespace Megaparsec {
             return this._name;
         }
 
+        get isLoaded(): boolean {
+            return this === this._container.currentElement;
+        }
+
         constructor(name: string) {
             this._name = name;
         }
@@ -54,6 +65,8 @@ namespace Megaparsec {
 
         abstract load(game: Game);
 
-        reset(game: Game) { }
+        reset(game: Game) { 
+            game.getScene(this.name).clear();
+        }
     }
 }
